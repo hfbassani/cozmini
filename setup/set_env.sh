@@ -1,0 +1,1 @@
+export PICOVOICE_KEYWORD_PATH=./keys/Hey-cosmo_en_mac_v3_0_0.ppn

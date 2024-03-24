@@ -1,6 +1,7 @@
 import cozmo_api
 import cozmo
 from event_messages import event_log, EventType
+from user_voice_input import VoiceInput
 
 class CozmoAPIStubby(cozmo_api.CozmoAPI):
     """
@@ -12,7 +13,10 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
 
     def __init__(self, robot: cozmo.robot.Robot=None, voice_input=None, succeed=True):
         self.succeed = succeed  # Flag to simulate success/failure
-        super().__init__(robot, voice_input)
+        self.robot = robot
+        self.voice_input = voice_input
+        self.new_user_input_provided = False
+        event_log.add_callback(self._event_calback)
 
     def cozmo_listens(self):
         """
@@ -400,7 +404,8 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         
 if __name__ == "__main__":
     # print(get_api_description())
-    robot_api = CozmoAPIStubby(None, None)
+    voice_input = VoiceInput()
+    robot_api = CozmoAPIStubby(None, voice_input)
     command = """
     cozmo_search_light_cube()
     cozmo_says("Nice to meet you, Alan!")

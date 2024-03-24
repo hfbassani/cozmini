@@ -615,7 +615,7 @@ class CozmoEvents:
 
     def __init__(self, robot) -> None:
         self.monitored_events = {
-            cozmo.objects.EvtObjectTapped: lambda kwargs: f"Cube was tapped: object_id: {kwargs['obj'].object_id} intensity: {kwargs['tap_intensity']}",
+            cozmo.objects.EvtObjectTapped: lambda kwargs: f"Cube was tapped: object_id: {kwargs['obj'].object_id}, intensity: {kwargs['tap_intensity']}",
             cozmo.objects.EvtObjectMoving: lambda kwargs: f"Cube was moved: object_id: {kwargs['obj'].object_id}",
             cozmo.objects.EvtObjectObserved: lambda kwargs: f"Cozmo saw a cube: object_id: {kwargs['obj'].object_id}",
         }

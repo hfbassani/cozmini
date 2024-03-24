@@ -87,9 +87,11 @@ def process_events(event_log):
             context += 'User says: ' + message + '\n'
         elif message_type == EventType.API_CALL:
             context += 'API call: ' + message + '\n'
-        else:
+        elif message_type == EventType.SYSTEM_MESSAGE:
             time = datetime.now().strftime("%H:%M:%S")
             context += f'System message ({time}): {message}\n'
+        else:
+            print(message_type, message)
 
     return context, stop
 
@@ -137,7 +139,6 @@ def cozmo_program(robot: cozmo.robot.Robot):
                 time.sleep(0.1)
                 continue
 
-            # print(context, end='', flush=True)
             user_interface.output_messges(context)
             prompt = prompt_instructions
             prompt += conversation_history
@@ -169,9 +170,3 @@ except Exception as e:
     traceback.print_exc()
     print('#### Robot not found. Using text mode! ###')
     cozmo_program(None)
-
-# '''''
-# while not exit:
-#     generate()
-#     execute()
-# '''

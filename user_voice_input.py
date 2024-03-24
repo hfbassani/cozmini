@@ -58,7 +58,7 @@ class VoiceInput:
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=16000,
             language_code="en-US",
-            # language_code="ja-JP",
+            # language_code="pt-BR",
         )
         response = client.recognize(config=config, audio=audio)
         # Return text only if there are results

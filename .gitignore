@@ -1,8 +1,8 @@
 # Ignore key files directories
 keys/*
 
-# Ignore conversation history
-conversation_history.txt
+# Ignore user data
+user_data/
 
 # MacOS files
 .DS_Store

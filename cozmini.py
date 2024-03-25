@@ -35,8 +35,8 @@ def generate_reply(models, user_text, input_image=None, model_log=None):
         except KeyboardInterrupt:
             break
         
-        except: 
-            print(f"Generation erro. Trying again: {retrie}.")
+        except Exception as e: 
+            print(f"Generation error: {e}\nTrying again: {retrie}.")
 
     raise KeyboardInterrupt
 
@@ -87,6 +87,9 @@ def process_events(event_log):
             context += 'User says: ' + message + '\n'
         elif message_type == EventType.API_CALL:
             context += 'API call: ' + message + '\n'
+        elif message_type == EventType.API_RESULT:
+            time = datetime.now().strftime("%H:%M:%S")
+            context += f'System message ({time}): {message}\n'
         elif message_type == EventType.SYSTEM_MESSAGE:
             time = datetime.now().strftime("%H:%M:%S")
             context += f'System message ({time}): {message}\n'
@@ -109,17 +112,18 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
     models = {
         'text_model': genai.GenerativeModel('gemini-pro'),
+        # 'text_model': genai.GenerativeModel('gemini-1.5-pro-latest'),
         'text_image_model': genai.GenerativeModel('gemini-pro-vision'),
     }
 
     model_log = None
-    model_log = open('model_log.txt', 'w')
+    model_log = open('user_data/model_log.txt', 'w')
 
     prompt_instructions = ''
     with open('cozmo_instructions.txt') as file:
         prompt_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
 
-    with open('conversation_history.txt', 'r+') as history:
+    with open('user_data/conversation_history.txt', 'r+') as history:
         conversation_history = history.read()
         if not conversation_history.startswith("Below is the last exchanges you had with the user, for context.\n\n"):
             conversation_history = "Below is the last exchanges you had with the user, for context.\n\n" + conversation_history

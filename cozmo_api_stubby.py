@@ -18,6 +18,11 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         self.new_user_input_provided = False
         event_log.add_callback(self._event_calback)
 
+    def _event_calback(self, event):
+        event_type, event_message = event
+        if event_type == EventType.USER_MESSAGE:
+            self.new_user_input_provided = True
+
     def cozmo_listens(self):
         """
         Waits for user to say something for 15 seconds.
@@ -42,9 +47,9 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
             A string indicating the result.
         """
         if self.succeed:
-            return f"Cozmo said: {text}!"
+            return f"succeeded."
         else:
-            return "Cozmo failed to speak."
+            return "failed."
 
     def cozmo_drives(self, distance: float, speed: float) -> str:
         """
@@ -122,7 +127,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         else:
             return "Cozmo failed to move head."
 
-    def cozmo_play_animation(self, animation_name: str) -> str:
+    def cozmo_plays_animation(self, animation_name: str) -> str:
         """
         Makes Cozmo play a specific animation.
 
@@ -136,7 +141,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         if self.succeed:
             return f"Cozmo played animation: {animation_name}"
         else:
-            return f"Animation '{animation_name}' not found."
+            return f"failed"
 
     def cozmo_play_song(self, song_notes: str) -> str:
         """
@@ -197,7 +202,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         if self.succeed:
             return f"Cozmo picked up object {object_id}."
         else:
-            return "Cozmo failed to pick up the object."
+            return "failed"
 
     def cozmo_place_object(self, object_id: int) -> str:
         """
@@ -212,7 +217,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         if self.succeed:
             return f"Cozmo placed object {object_id}."
         else:
-            return "Cozmo failed to place the object."
+            return "failed"
 
     def cozmo_dock_with_cube(self, object_id: int) -> str:
         """
@@ -227,7 +232,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         if self.succeed:
             return f"Cozmo docked with cube {object_id}."
         else:
-            return "Cozmo failed to dock with the cube."
+            return "failed."
 
     def cozmo_roll_cube(self, object_id: int) -> str:
         """
@@ -242,7 +247,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         if self.succeed:
             return f"Cozmo rolled cube {object_id}."
         else:
-            return "Cozmo failed to roll the cube."
+            return "failed"
 
     def cozmo_start_behavior(self, behavior_name: str) -> str:
         """

@@ -64,10 +64,10 @@ class CozmoAPI:
 
     def cozmo_listens(self):
         """
-        Waits for user to say something for 15 seconds.
+        Waits for user to say something for 15 seconds. This will block you for 15s. Avoid using cozmo_listens(), unless you really need feedback from the user.
         
         Returns:
-            A possibly imperfect, tanscription of what the user said.
+            A possibly imperfect, transcription of what the user said.
         """
         user_said = self._wait_user_input()
         if user_said:
@@ -183,7 +183,7 @@ class CozmoAPI:
         else:
             return "failed"
 
-    def cozmo_play_animation(self, animation_name: str) -> str:
+    def cozmo_plays_animation(self, animation_name: str) -> str:
         """
         Makes Cozmo play a specific animation.
 

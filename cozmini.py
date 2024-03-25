@@ -10,13 +10,13 @@ from event_messages import event_log, EventType
 import traceback
 import time
 
-def generate_reply(models, user_text, input_image=None, model_log=None):
+def generate_reply(models, prompt, input_image=None, model_log=None):
     if input_image:
         model = models['text_image_model']
-        prompt = [user_text, input_image]
+        prompt = [prompt, input_image]
     else:
         model = models['text_model']
-        prompt = [user_text]
+        prompt = [prompt]
 
     for retrie in range(4):
         try:
@@ -24,6 +24,9 @@ def generate_reply(models, user_text, input_image=None, model_log=None):
             response.resolve()
 
             if model_log:
+                model_log.write('\n======== PROMPT ========\n')
+                model_log.write(prompt[max(-len(prompt) + 1, -200)])
+                model_log.write('\n======== OUTPUT ========\n')
                 model_log.write(response.text+'\n')
                 model_log.flush()
 

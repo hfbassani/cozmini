@@ -360,7 +360,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo rolled cube {object_id}."
             else:
-                return "failed"            
+                return "failed"
         else:
             return f"Cube with ID {object_id} not found."
 
@@ -401,12 +401,18 @@ class CozmoAPI:
     def cozmo_start_freeplay(self) -> str:
         """
         Starts Cozmo's freeplay mode where he explores and interacts autonomously.
+        You shouldn't attempt to drive Cozmo during this, as it will clash
+        with whatever the current behavior is attempting to do.
+        Use cozmo_stop_freeplay() before using other functions.
 
         Returns:
             A string indicating the result, e.g., "Cozmo entered freeplay mode."
         """
         self.robot.start_freeplay_behaviors()
-        return "Cozmo entered freeplay mode."
+        if self.robot.is_freeplay_mode_active:
+            return "Cozmo entered freeplay mode."
+        else:
+            return f"failed"
 
     def cozmo_stop_freeplay(self) -> str:
         """
@@ -416,7 +422,10 @@ class CozmoAPI:
             A string indicating the result, e.g., "Cozmo exited freeplay mode."
         """
         self.robot.stop_freeplay_behaviors()
-        return "Cozmo exited freeplay mode."
+        if not self.robot.is_freeplay_mode_active:
+            return "Cozmo exited freeplay mode."
+        else:
+            return f"failed to stop freeplay mode."
 
     def cozmo_battery_level(self) -> str:
         """
@@ -615,9 +624,11 @@ class CozmoEvents:
 
     def __init__(self, robot) -> None:
         self.monitored_events = {
-            cozmo.objects.EvtObjectTapped: lambda kwargs: f"Cube was tapped: object_id: {kwargs['obj'].object_id}, intensity: {kwargs['tap_intensity']}",
-            cozmo.objects.EvtObjectMoving: lambda kwargs: f"Cube was moved: object_id: {kwargs['obj'].object_id}",
-            cozmo.objects.EvtObjectObserved: lambda kwargs: f"Cozmo saw a cube: object_id: {kwargs['obj'].object_id}",
+            cozmo.objects.EvtObjectTapped: lambda kwargs: f"Cube was tapped! object_id: {int(kwargs['obj'].object_id)}, intensity: {kwargs['tap_intensity']}.",
+            cozmo.objects.EvtObjectMoving: lambda kwargs: f"Cube was moved! object_id: {int(kwargs['obj'].object_id)}.",
+            cozmo.objects.EvtObjectObserved: lambda kwargs: f"Cozmo saw a cube! object_id: {int(kwargs['obj'].object_id)}.",
+            cozmo.faces.EvtFaceObserved: lambda kwargs: f"Cozmo saw a person! face_id: {int(kwargs['face'].face_id)}{', name: ' + kwargs['name'] if kwargs['name'] else ''}.",
+            cozmo.pets.EvtPetObserved: lambda kwargs: f"Cozmo saw a pet! pet_id: {int(kwargs['pet'].pet_id)}.",
         }
 
         self.last_events = {}
@@ -663,8 +674,9 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_roll_cube(1)',
         # 'cozmo_start_behavior("behaviour")',
         # 'cozmo_stop_behavior("behaviour")',
-        # 'cozmo_start_freeplay()',
-        # 'cozmo_stop_freeplay()',
+        'cozmo_start_freeplay()',
+        'cozmo_listens()',        
+        'cozmo_stop_freeplay()',
         # 'cozmo_battery_level()',
         # 'cozmo_is_charging()',
         # 'cozmo_is_carrying_object()',
@@ -673,7 +685,7 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_set_headlight("On")',
         # 'cozmo_set_volume(50)',
         # 'cozmo_pop_a_wheelie(1)',
-        'cozmo_listens()',
+        # 'cozmo_listens()',
     )
     results = robot_api.execute_commands("\n".join(commands))
     print(results)

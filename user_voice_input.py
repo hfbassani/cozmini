@@ -10,6 +10,10 @@ class VoiceInput:
 
     RECORD_TIME = 10
     def __init__(self):
+        self.audio_stream = None
+        self.pa = None
+        self.porcupine = None
+
         # Loading the access key and keyword path from environment variables
         self.access_key = os.environ.get('PICOVOICE_ACCESS_KEY')
         self.keyword_path = os.environ.get('PICOVOICE_KEYWORD_PATH')
@@ -102,6 +106,9 @@ class VoiceInput:
                 self.trigger_listen = False
 
     def __del__(self):
-        self.audio_stream.close()
-        self.pa.terminate()
-        self.porcupine.delete()
+        if self.audio_stream:
+            self.audio_stream.close()
+        if self.pa:
+            self.pa.terminate()
+        if self.porcupine:
+            self.porcupine.delete()

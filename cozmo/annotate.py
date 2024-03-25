@@ -36,6 +36,7 @@ __all__ = ['DEFAULT_OBJECT_COLORS',
 
 
 import collections
+collections.Iterable = collections.abc.Iterable
 import functools
 
 try:
@@ -112,6 +113,12 @@ class ImageText:
         self.outline_color = outline_color
         self.full_outline = full_outline
 
+    def textsize(self, text, font):
+        im = Image.new(mode="P", size=(0, 0))
+        draw = ImageDraw.Draw(im)
+        _, _, width, height = draw.textbbox((0, 0), text=text, font=font)
+        return width, height
+
     def render(self, draw, bounds):
         '''Renders the text onto an image within the specified bounding box.
 
@@ -124,7 +131,7 @@ class ImageText:
             The same :class:`PIL.ImageDraw.ImageDraw` object as was passed-in with text applied.
         '''
         (bx1, by1, bx2, by2) = bounds
-        text_width, text_height = draw.textsize(self.text, font=self.font)
+        text_width, text_height = self.textsize(self.text, font=self.font)
 
         if self.position & TOP:
             y = by1

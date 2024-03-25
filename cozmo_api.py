@@ -294,8 +294,8 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo picked up object {object_id}."
             else:
-                print(action)
-        
+                return f"failed"
+
         return f"Cube with ID {object_id} not found."
 
     def cozmo_place_object(self, object_id: int) -> str:
@@ -320,7 +320,7 @@ class CozmoAPI:
             else:
                 return f"Cube with ID {object_id} not found."
         else:
-            return "Cozmo is not carrying an object."
+            return "Failed. Cozmo is not carrying an object."
 
     def cozmo_dock_with_cube(self, object_id: int) -> str:
         """
@@ -367,7 +367,10 @@ class CozmoAPI:
     def cozmo_start_behavior(self, behavior_name: str) -> str:
         """
         Starts a specific behavior for Cozmo to perform autonomously.
-
+        You shouldn't attempt to drive Cozmo during this, as it will clash
+        with whatever the current behavior is attempting to do and the calls will fail.
+        Use cozmo_stop_behavior() before using other functions.
+  
         Args:
             behavior_name: The name of the behavior to start among: FindFaces, KnockOverCubes, LookAroundInPlace, PounceOnMotion, RollBlock, StackBlocks, EnrollFace
 
@@ -402,7 +405,7 @@ class CozmoAPI:
         """
         Starts Cozmo's freeplay mode where he explores and interacts autonomously.
         You shouldn't attempt to drive Cozmo during this, as it will clash
-        with whatever the current behavior is attempting to do.
+        with whatever the current behavior is attempting to do and the calls will fail.
         Use cozmo_stop_freeplay() before using other functions.
 
         Returns:
@@ -585,6 +588,15 @@ class CozmoAPI:
                     results.append(message)
 
         return "\n".join(results)  # Combine results into a single string
+    
+    def get_annotated_image(self):
+        '''Convert PIL image and return it'''
+        self.robot.camera.image_stream_enabled = True
+        image = self.robot.world.latest_image
+        if image:
+            image = image.annotate_image(scale=2)
+        return image
+
 
 def _parse_api_call(api_call: str):
     parsed = ast.parse(api_call)
@@ -615,7 +627,10 @@ def _parse_api_call(api_call: str):
             arguments.append(arg_value)
         else:
             # If the argument is not a tuple or unary operation, extract its value directly
-            arguments.append(arg.value)
+            if arg.value:
+                arguments.append(arg.value)
+            else:
+                print(arg)
 
     return function_name, arguments
 
@@ -674,9 +689,9 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_roll_cube(1)',
         # 'cozmo_start_behavior("behaviour")',
         # 'cozmo_stop_behavior("behaviour")',
-        'cozmo_start_freeplay()',
-        'cozmo_listens()',        
-        'cozmo_stop_freeplay()',
+        # 'cozmo_start_freeplay()',
+        # 'cozmo_listens()',        
+        # 'cozmo_stop_freeplay()',
         # 'cozmo_battery_level()',
         # 'cozmo_is_charging()',
         # 'cozmo_is_carrying_object()',
@@ -686,6 +701,7 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_set_volume(50)',
         # 'cozmo_pop_a_wheelie(1)',
         # 'cozmo_listens()',
+        'cozmo_set_backpack_lights(blue)'
     )
     results = robot_api.execute_commands("\n".join(commands))
     print(results)

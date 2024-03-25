@@ -36,12 +36,11 @@ def generate_reply(models, prompt, input_image=None, model_log=None):
             return ""
         
         except KeyboardInterrupt:
-            break
+            raise KeyboardInterrupt
         
         except Exception as e: 
             print(f"Generation error: {e}\nTrying again: {retrie}.")
-
-    raise KeyboardInterrupt
+    
 
 def filter_response(response):
     commands = ''
@@ -102,7 +101,6 @@ def process_events(event_log):
     return context, stop
 
 def cozmo_program(robot: cozmo.robot.Robot):
-    user_interface = user_ui.UserInterface()
     voice_input = user_voice_input.VoiceInput()
 
     now = datetime.now().strftime("%d/%m/%Y")
@@ -110,8 +108,10 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
     if robot:
         cozmo_robot_api = cozmo_api.CozmoAPI(robot, voice_input)
+        user_interface = user_ui.UserInterface(cozmo_robot_api.get_annotated_image)
     else:
         cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby(None, voice_input)
+        user_interface = user_ui.UserInterface(None)
 
     models = {
         'text_model': genai.GenerativeModel('gemini-pro'),

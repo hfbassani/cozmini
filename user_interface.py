@@ -1,9 +1,11 @@
 from event_messages import event_log, EventType
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, make_response, send_file
+from io import BytesIO
 import threading
 import webbrowser
 from time import sleep
 import logging
+import traceback
 
 _log = logging.getLogger('werkzeug')
 _log.setLevel(logging.ERROR)
@@ -13,18 +15,21 @@ _flask_app.debug = False
 
 class UserInterface():
 
-    def __init__(self):
+    def __init__(self, get_image=None):
         self.new_user_input_provided = False
         self.user_says = ''
         self.history = ''
+        self.get_image = get_image
 
         _flask_app.add_url_rule('/', view_func=self.handle_index_page, methods=['GET'])
         _flask_app.add_url_rule('/handle_input', view_func=self.handle_input, methods=['POST'])
         _flask_app.add_url_rule('/get_history', view_func=self.get_history, methods=['GET'])
+        _flask_app.add_url_rule('/cozmoImage', view_func=self.handle_cozmoImage, methods=['GET'])
 
         self.input_page = '''
         <html>
             <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+            <img src="cozmoImage" id="cozmoImageId" width=640 height=480>
             <textarea
                     id="history"
                     name="history"
@@ -49,6 +54,7 @@ class UserInterface():
                             $textarea.scrollTop($textarea[0].scrollHeight);
                         }
                     });
+                    document.getElementById("cozmoImageId").src="cozmoImage?" + (new Date()).getTime();
                 }, 250);
             </script>
         <html>
@@ -77,6 +83,30 @@ class UserInterface():
         while not self.new_user_input_provided:
             sleep(0.05)
         return self.user_says
+
+    def handle_cozmoImage(self):
+        '''Convert PIL image to a image file and send it'''
+        if self.get_image:
+            try:
+                image = self.get_image()
+                if image:
+                    img_io = BytesIO()
+                    image.save(img_io, 'PNG')
+                    img_io.seek(0)
+                    return self.make_uncached_response(send_file(img_io, mimetype='image/png', etag=False))
+            except Exception as e:
+                traceback.print_exc()
+
+        return render_template_string(self.input_page, user_says='', history=self.history)
+
+    def make_uncached_response(self, in_file):
+        response = make_response(in_file)
+        response.headers['Pragma-Directive'] = 'no-cache'
+        response.headers['Cache-Directive'] = 'no-cache'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     def start_ui_loop(self):
         threading.Thread(target=lambda: self.run_flask(_flask_app), daemon=True).start()

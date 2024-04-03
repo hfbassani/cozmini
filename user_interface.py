@@ -90,6 +90,7 @@ class UserInterface():
             try:
                 image = self.get_image()
                 if image:
+                    image = image.annotate_image(scale=2)
                     img_io = BytesIO()
                     image.save(img_io, 'PNG')
                     img_io.seek(0)

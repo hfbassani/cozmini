@@ -39,6 +39,7 @@ class CozmoAPI:
         self.new_user_input_provided = False
         self.cozmo_events = CozmoEvents(robot)
         event_log.add_callback(self._event_calback)
+        self.image = None
 
     def _event_calback(self, event):
         event_type, event_message = event
@@ -69,11 +70,9 @@ class CozmoAPI:
         Returns:
             A possibly imperfect, transcription of what the user said.
         """
-        user_said = self._wait_user_input()
-        if user_said:
-            return ""
-        else:
-            return "User didn't say anything."
+        # user_said = self._wait_user_input()
+        self.voice_input.capture_user_input()
+        return ""
 
     def cozmo_says(self, text: str) -> str:
         """
@@ -90,7 +89,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"succeeded."
         else:
-            return "failed."
+            return "Failed."
 
     def cozmo_drives(self, distance: float, speed: float) -> str:
         """
@@ -108,7 +107,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo drove {distance} mm at {speed} mmps."
         else:
-            return "failed."
+            return "Failed."
 
     def cozmo_pop_a_wheelie(self, object_id: int) -> str:
         """
@@ -147,7 +146,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo turned {angle} degrees."
         else:
-            return "failed"
+            return "Failed."
 
     def cozmo_lifts(self, height: float) -> str:
         """
@@ -164,7 +163,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo's lift is now at {height} ratio."
         else:
-            return "failed"
+            return "Failed."
 
     def cozmo_head(self, angle: float) -> str:
         """
@@ -181,7 +180,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo's head is now at {angle} degrees."
         else:
-            return "failed"
+            return "Failed."
 
     def cozmo_plays_animation(self, animation_name: str) -> str:
         """
@@ -199,7 +198,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo played animation: {animation_name}"
             else:
-                return "failed"
+                return "Failed."
         except KeyError:
             return f"Animation '{animation_name}' not found."
 
@@ -225,7 +224,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return "Cozmo played the song."
             else:
-                return "failed"            
+                return "Failed."            
         except Exception as e:
             traceback.print_exc()
             return "Cozmo failed to play the song."
@@ -273,7 +272,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo went to object {object_id}."
             else:
-                return "failed"
+                return "Failed."
         else:
             return f"Object with ID {object_id} not found."
 
@@ -294,7 +293,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo picked up object {object_id}."
             else:
-                return f"failed"
+                return f"Failed."
 
         return f"Cube with ID {object_id} not found."
 
@@ -316,7 +315,7 @@ class CozmoAPI:
                 if action.has_succeeded:
                     return f"Cozmo placed object {object_id}."
                 else:
-                    return "failed"                
+                    return "Failed."                
             else:
                 return f"Cube with ID {object_id} not found."
         else:
@@ -339,7 +338,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo docked with cube {object_id}."
             else:
-                return "failed"
+                return "Failed."
         else:
             return f"Cube with ID {object_id} not found."
 
@@ -360,7 +359,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo rolled cube {object_id}."
             else:
-                return "failed"
+                return "Failed."
         else:
             return f"Cube with ID {object_id} not found."
 
@@ -415,7 +414,7 @@ class CozmoAPI:
         if self.robot.is_freeplay_mode_active:
             return "Cozmo entered freeplay mode."
         else:
-            return f"failed"
+            return f"Failed."
 
     def cozmo_stop_freeplay(self) -> str:
         """
@@ -531,6 +530,26 @@ class CozmoAPI:
         """
         self.robot.set_robot_volume(volume)
         return f"Cozmo's volume set to {volume}."
+    
+    def cozmo_captures_image(self):
+        """
+        Makes Cozmo take a picture from his front camera.
+
+        Returns:
+            A string indicating success or failure. 
+            A description of the image will be provided in the system messages.
+        """
+        wait = 0
+        while wait < _WAIT_TIMEOUT:
+            self.image = self.get_annotated_image()
+            if self.image:
+                break
+            wait += _WAIT_LATENCY
+
+        if self.image:
+            return "" # Result will be provide by the generative model
+        else:
+            return "Failed."
 
     def execute_commands(self, command_string: str) -> str:
         """
@@ -540,8 +559,10 @@ class CozmoAPI:
             command_string: A string containing CozmoAPI function calls separated by newlines.
 
         Returns:
-            A string summarizing the results of the executed commands.
+            A string summarizing the results of the executed commands and an image, if an image was captured.
         """
+        
+        self.image = None
         results = []
         for line in command_string.splitlines():
             line = line.strip()  # Remove leading/trailing whitespace
@@ -587,15 +608,12 @@ class CozmoAPI:
                     event_log.message(EventType.API_RESULT, message)
                     results.append(message)
 
-        return "\n".join(results)  # Combine results into a single string
+        return "\n".join(results), self.image
     
     def get_annotated_image(self):
         '''Convert PIL image and return it'''
         self.robot.camera.image_stream_enabled = True
-        image = self.robot.world.latest_image
-        if image:
-            image = image.annotate_image(scale=2)
-        return image
+        return self.robot.world.latest_image
 
 
 def _parse_api_call(api_call: str):

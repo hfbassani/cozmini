@@ -1,3 +1,6 @@
+# Ignore venv directory
+venv_cozmini/
+
 # Ignore key files directories
 keys/*
 

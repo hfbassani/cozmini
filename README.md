@@ -3,6 +3,15 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 Setting up:
 
+ - Run `./setup/install_packs.sh` to install the required packages and create
+   the virtual environment.
+
+ - Get google.ai dev keys: https://ai.google.dev/
+ - Get your picovoice keys and keyword file here: https://picovoice.ai/
+ - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+ - Run `gcloud init` to set it up and follow the instructions
+ - Run `gcloud auth application-default login` to get credentials
+
  - Create a `env_keys.sh` file in the `keys` directory, with the content below:
 
  ```
@@ -10,9 +19,3 @@ Setting up:
  export PICOVOICE_ACCESS_KEY=[enter your Picovoice key here]
  export GOOGLE_API_KEY=[enter your google API key here]
  ```
-
- - Get google.ai dev keys: https://ai.google.dev/
- - Get your picovoice keys and keyword file here: https://picovoice.ai/
- - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
- - Run `gcloud init` to set it up and follow the instructions
- - Run `gcloud auth application-default login` to get credentials

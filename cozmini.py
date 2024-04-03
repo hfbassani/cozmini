@@ -10,41 +10,67 @@ from event_messages import event_log, EventType
 import traceback
 import time
 
-def generate_reply(models, prompt, input_image=None, model_log=None):
-    if input_image:
-        model = models['text_image_model']
-        prompt = [prompt, input_image]
-    else:
-        model = models['text_model']
-        prompt = [prompt]
+def generate_reply(models, prompt, model_log=None):
 
+    output = ''
     for retrie in range(4):
         try:
-            response = model.generate_content(prompt, stream=False)
+            response = models['text_model'].generate_content(prompt, stream=False)
             response.resolve()
+            output = response.text
 
             if model_log:
                 model_log.write('\n======== PROMPT ========\n')
-                model_log.write(prompt[max(-len(prompt) + 1, -200)])
+                model_log.write(prompt[-1000:])
                 model_log.write('\n======== OUTPUT ========\n')
                 model_log.write(response.text+'\n')
                 model_log.flush()
 
-            return response.text
+            return output
         except BlockedPromptException as e:
             print("AI response was blocked due to safety concerns. Please try a different input.")
-            return ""
         
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         
         except Exception as e: 
             print(f"Generation error: {e}\nTrying again: {retrie}.")
+
+    return output
     
+def get_image_description(models, input_image, model_log=None):
+    image_description = ''
+    if input_image:
+        for retrie in range(4):
+            try:
+                for retrie in range(4):
+                    image_prompt = "Anki Cozmo robot captured this image. Describe what cozmo sees in the image."
+                    response = models['text_image_model'].generate_content([image_prompt, input_image], stream=False)
+                    response.resolve()
+                    image_description = response.text.strip()
+
+                    if model_log:
+                        model_log.write('\n======== IMAGE PROMPT ========\n')
+                        model_log.write(image_prompt+'\n')
+                        model_log.write('\n======== IMAGE OUTPUT ========\n')
+                        model_log.write(image_description)
+                        model_log.flush()
+
+            except BlockedPromptException as e:
+                print("AI response was blocked due to safety concerns. Please try a different input.")
+        
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+
+            except Exception as e: 
+                print(f"Generation error: {e}\nTrying again: {retrie}.")
+
+    return image_description
+                    
 
 def filter_response(response):
     commands = ''
-    for line in response.split('\n'):
+    for line in response.splitlines():
         line = line.strip()
         if not line.startswith(('API call:', 'cozmo_')):
           event_log.message(EventType.API_RESULT, f'Got an invalid API call (Ignored): "{line}".\n')
@@ -61,14 +87,14 @@ def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
     user_prompt = ''
     system_messages = ''
     commands = ''
-    for cmd in response.split('\n'):
+    for cmd in response.splitlines():
         if cmd.startswith('API call: '):
             commands += f'{cmd[len("API call: "):].strip()}\n'
 
     if commands:
         result = robot_api.execute_commands(commands)
         user_prompt = ''
-        for line in result.split('\n'):
+        for line in result.splitlines():
             if line.startswith('User says:'):
                 user_prompt += f'{line[len("User says:"):].strip()}\n'
             else:
@@ -76,11 +102,15 @@ def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
 
     return user_prompt, system_messages
 
-def process_events(event_log):
+def process_events(event_log, image_description=''):
     events = event_log.pop_all_events()
-
+    time = datetime.now().strftime("%H:%M:%S")
     context = ''
     stop = False
+
+    if image_description:
+        context = f'System message ({time}): Result of cozmo_captures_image(): {image_description}\n'
+
     for message_type, message in events:
         message = message.strip()
         if message_type == EventType.USER_MESSAGE:
@@ -90,10 +120,8 @@ def process_events(event_log):
         elif message_type == EventType.API_CALL:
             context += 'API call: ' + message + '\n'
         elif message_type == EventType.API_RESULT:
-            time = datetime.now().strftime("%H:%M:%S")
             context += f'System message ({time}): {message}\n'
         elif message_type == EventType.SYSTEM_MESSAGE:
-            time = datetime.now().strftime("%H:%M:%S")
             context += f'System message ({time}): {message}\n'
         else:
             print(message_type, message)
@@ -137,9 +165,11 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
         user_interface.start_ui_loop()
         voice_input.start_voice_input_loop()
+        image = None
+        image_description = None
         while True:
 
-            context, stop = process_events(event_log)
+            context, stop = process_events(event_log, image_description)
             if stop:
                 break
             
@@ -165,7 +195,10 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
             cozmo_robot_api.cozmo_set_backpack_lights("off")
             try:
-                cozmo_robot_api.execute_commands(commands)
+                _, image = cozmo_robot_api.execute_commands(commands)
+                if image:
+                    image = image.annotate_image()
+                    image_description = get_image_description(models, image, model_log)
             except Exception as e:
                 traceback.print_exc()
 

@@ -63,14 +63,14 @@ def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
     commands = ''
     for cmd in response.split('\n'):
         if cmd.startswith('API call: '):
-            commands += f'{cmd[len('API call: '):].strip()}\n'
+            commands += f'{cmd[len("API call: "):].strip()}\n'
 
     if commands:
         result = robot_api.execute_commands(commands)
         user_prompt = ''
         for line in result.split('\n'):
             if line.startswith('User says:'):
-                user_prompt += f'{line[len('User says:'):].strip()}\n'
+                user_prompt += f'{line[len("User says:"):].strip()}\n'
             else:
                 system_messages += f'{line}\n'
 
@@ -126,7 +126,8 @@ def cozmo_program(robot: cozmo.robot.Robot):
     with open('cozmo_instructions.txt') as file:
         prompt_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
 
-    with open('user_data/conversation_history.txt', 'r+') as history:
+    with open('user_data/conversation_history.txt', 'a+') as history:
+        history.seek()
         conversation_history = history.read()
         if not conversation_history.startswith("Below is the last exchanges you had with the user, for context.\n\n"):
             conversation_history = "Below is the last exchanges you had with the user, for context.\n\n" + conversation_history

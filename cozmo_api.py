@@ -203,7 +203,7 @@ class CozmoAPI:
         except KeyError:
             return f"Animation '{animation_name}' not found."
 
-    def cozmo_play_song(self, song_notes: str) -> str:
+    def cozmo_plays_song(self, song_notes: str) -> str:
         """
         Makes Cozmo play a song composed of provided notes.
         All notes will be played with a fixed duration
@@ -216,10 +216,20 @@ class CozmoAPI:
         Returns:
             A string indicating the result, e.g., "Cozmo played the song."
         """
-        song_notes = song_notes.replace(' ', ',').replace('"', '').replace("'", '')
+        song_notes = song_notes.replace('"', '').replace("'", '')
+        if ',' not in song_notes:
+            song_notes = song_notes.replace(' ', ',')
 
         try:
-            notes = [SongNote(getattr(NoteTypes, note.strip()), NoteDurations.Quarter) for note in song_notes.split(',')]
+            notes = []
+            for note in song_notes.split(','):
+                try:
+                    note = note.strip()
+                    song_note = SongNote(getattr(NoteTypes, note), NoteDurations.Quarter)
+                    notes.append(song_note)
+                except:
+                    return f"Failed: Note '{note}' is not supported! Use only: C2, C2_Sharp, D2, D2_Sharp, E2, F2, F2_Sharp, G2, G2_Sharp, A2, A2_Sharp, B2, C3, C3_Sharp, Rest."
+
             action = self.robot.play_song(notes)
             action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
             if action.has_succeeded:
@@ -512,7 +522,7 @@ class CozmoAPI:
         Turns Cozmo's headlight on or off.
 
         Args:
-            on_off: "on" to turn the headlight on, "off" to turn it off.
+            on_off: string "on" to turn the headlight on, "off" to turn it off.
 
         Returns:
             A string indicating the result, e.g., "Cozmo's headlight turned on."
@@ -621,6 +631,7 @@ class CozmoAPI:
     
     def get_annotated_image(self):
         '''Convert PIL image and return it'''
+        self.robot.camera.color_image_enabled = True
         self.robot.camera.image_stream_enabled = True
         return self.robot.world.latest_image
 
@@ -708,7 +719,7 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_lifts(0.5)',
         # 'cozmo_head(-0.3)',
         # 'cozmo_play_animation("anim_peekaboo_success_02")',
-        # 'cozmo_play_song("C2, C2_Sharp, D2, D2_Sharp, E2, F2, F2_Sharp, G2, G2_Sharp, A2, A2_Sharp, B2")',
+        # 'cozmo_plays_song("C2, C2_Sharp, D2, D2_Sharp, E2, F2, F2_Sharp, G2, G2_Sharp, A2, A2_Sharp, B2")',
         'cozmo_go_to_object(1, 65)',
         # 'cozmo_pickup_object(1)',
         # 'cozmo_place_object(2)',

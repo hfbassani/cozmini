@@ -49,4 +49,6 @@ IMPORTANT:
 3. Always stop after providing API calls. You should never continue with system messages (System message ...) or user inputs (User says ...) as these will be provided to you by the robot system and the user, respectively.
 4. You can keep track of time using the time in system messages in "%H:%M:%S" format.
 
-Start exploring after the system message.
+Below is the last exchanges you had with the user, if any, for your context.
+
+

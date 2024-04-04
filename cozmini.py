@@ -10,7 +10,12 @@ from event_messages import event_log, EventType
 import traceback
 import time
 
-def generate_reply(models, prompt, model_log=None):
+_CHAT_MODE = False
+
+def generate_reply(models, context, prompt, model_log=None):
+
+    if not _CHAT_MODE:
+        prompt = context + prompt
 
     output = ''
     for retrie in range(4):
@@ -23,7 +28,7 @@ def generate_reply(models, prompt, model_log=None):
                 model_log.write('\n======== PROMPT ========\n')
                 model_log.write(prompt[-1000:])
                 model_log.write('\n======== OUTPUT ========\n')
-                model_log.write(response.text+'\n')
+                model_log.write(response.text + '\n')
                 model_log.flush()
 
             return output
@@ -155,10 +160,8 @@ def cozmo_program(robot: cozmo.robot.Robot):
         prompt_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
 
     with open('user_data/conversation_history.txt', 'a+') as history:
-        history.seek()
+        history.seek(0)
         conversation_history = history.read()
-        if not conversation_history.startswith("Below is the last exchanges you had with the user, for context.\n\n"):
-            conversation_history = "Below is the last exchanges you had with the user, for context.\n\n" + conversation_history
 
         print(prompt_instructions)
         print(conversation_history)
@@ -169,31 +172,29 @@ def cozmo_program(robot: cozmo.robot.Robot):
         image_description = None
         while True:
 
-            context, stop = process_events(event_log, image_description)
+            new_context, stop = process_events(event_log, image_description)
             if stop:
                 break
             
-            if not context:
+            if not new_context:
                 time.sleep(0.1)
                 continue
 
-            user_interface.output_messges(context)
-            prompt = prompt_instructions
-            prompt += conversation_history
-            context += 'API call: '
-            prompt += context
+            context = prompt_instructions + conversation_history
+            prompt = new_context + 'API call: '
+            user_interface.output_messges(prompt)
 
             print("Cozmo is thinking...")
-            cozmo_robot_api.cozmo_set_backpack_lights("white_light")
-            commands = filter_response(generate_reply(models, prompt, model_log=model_log))
-
+            cozmo_robot_api.cozmo_set_backpack_lights(255, 255, 255)
+            commands = filter_response(generate_reply(models, context, prompt, model_log=model_log))
             user_interface.output_messges(commands)
-            remember = context + commands
+
+            remember = prompt + commands
             conversation_history += remember
             history.write(remember)
             history.flush()
 
-            cozmo_robot_api.cozmo_set_backpack_lights("off")
+            cozmo_robot_api.cozmo_set_backpack_lights(0, 0, 0)
             try:
                 _, image = cozmo_robot_api.execute_commands(commands)
                 if image:

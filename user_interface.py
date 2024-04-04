@@ -119,7 +119,7 @@ class UserInterface():
         '''
         url = "http://" + host_ip + ":" + str(host_port)
         # self.delayed_open_web_browser(url=url, delay=open_page_delay)
-        print(f'User this URL to open the UI: {url}')
+        print(f'Use this URL to open the UI: {url}')
 
         flask_app.run(host=host_ip, port=host_port, use_evalex=False, threaded=True)
 

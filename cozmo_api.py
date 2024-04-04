@@ -89,7 +89,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"succeeded."
         else:
-            return "Failed."
+            return f"Failed: {action.failure_reason}"
 
     def cozmo_drives(self, distance: float, speed: float) -> str:
         """
@@ -107,29 +107,29 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo drove {distance} mm at {speed} mmps."
         else:
-            return "Failed."
+            return f"Failed: {action.failure_reason}"
 
     def cozmo_pops_a_wheelie(self, object_id: int) -> str:
         """
-        Makes Cozmo attempt to pop a wheelie using a specific cube.
-        Before doing this, Cozmo needs to find a cube with cozmo_search_light_cube() which returns the get the object_id.
+        Makes Cozmo attempt to pop a wheelie using a specific cube. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id.
 
         Args:
             object_id: The ID of the LightCube to use for the wheelie.
 
         Returns:
-            A string indicating the result, e.g., "Cozmo has performed a wheel stand" or "Wheelie failed."
+            A string indicating the result, e.g., "Cube with ID {object_id} not seen." if the cube was not found, "Cozmo has performed a wheel stand" or "Failed."
         """
-        cube = self.robot.world.get_light_cube(object_id)
-        if cube:
+        object_id = int(object_id)
+        cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
+        if cube and cube.object_id == object_id:
             action = self.robot.pop_a_wheelie(cube)
             action.wait_for_completed(timeout=30)
             if action.has_succeeded:
                 return "Cozmo has performed a wheel stand!"
             else:
-                return "Wheelie failed."
+                return f"Failed: {action.failure_reason}"
         else:
-            return f"Cube with ID {object_id} not found."
+            return f"Cube with ID {object_id} not seen."
 
     def cozmo_turns(self, angle: float) -> str:
         """
@@ -146,7 +146,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo turned {angle} degrees."
         else:
-            return "Failed."
+            return f"Failed: {action.failure_reason}"
 
     def cozmo_lifts(self, height: float) -> str:
         """
@@ -163,7 +163,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo's lift is now at {height} ratio."
         else:
-            return "Failed."
+            return f"Failed: {action.failure_reason}"
 
     def cozmo_head(self, angle: float) -> str:
         """
@@ -180,7 +180,7 @@ class CozmoAPI:
         if action.has_succeeded:
             return f"Cozmo's head is now at {angle} degrees."
         else:
-            return "Failed."
+            return f"Failed: {action.failure_reason}"
 
     def cozmo_plays_animation(self, animation_name: str) -> str:
         """
@@ -198,7 +198,7 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo played animation: {animation_name}"
             else:
-                return "Failed."
+                return f"Failed: {action.failure_reason}"
         except KeyError:
             return f"Animation '{animation_name}' not found."
 
@@ -224,14 +224,14 @@ class CozmoAPI:
             if action.has_succeeded:
                 return "Cozmo played the song."
             else:
-                return "Failed."            
+                return f"Failed: {action.failure_reason}"         
         except Exception as e:
             traceback.print_exc()
             return "Cozmo failed to play the song."
 
     def cozmo_search_light_cube(self) -> str:
         """
-        Makes Cozmo search for a light cube.
+        Makes Cozmo search for a light cube and returns an object_id that can be used for other actions such as pop a wheely, pick up, roll, etc.
 
         Returns:
             A string indicating the result, e.g., "Found cube with ID: [object_id]" or "No cube found."
@@ -255,8 +255,7 @@ class CozmoAPI:
 
     def cozmo_go_to_object(self, object_id: int, distance: float) -> str:
         """
-        Makes Cozmo drive to a specific object and stop at a specific distance from it.
-        You have to be at least 5 millimeters in order to pick up or stack objects.
+        Makes Cozmo drive to a specific object and stop at a specific distance from is center. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id. The closest distance Cozmo can get to a cube without bumping into it is 65mm.
 
         Args:
             object_id: The ID of the object to approach.
@@ -265,20 +264,21 @@ class CozmoAPI:
         Returns:
             A string indicating the result, e.g., "Cozmo went to object [object_id]."
         """
+        object_id = int(object_id)
         cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
         if cube and cube.object_id == object_id:
-            action = self.robot.go_to_object(cube, distance_mm(distance))
+            action = self.robot.go_to_object(cube, distance_mm(distance), num_retries=2)
             action.wait_for_completed(timeout=30)
             if action.has_succeeded:
                 return f"Cozmo went to object {object_id}."
             else:
-                return "Failed."
+                return f"Failed: {action.failure_reason}"
         else:
             return f"Object with ID {object_id} not found."
 
     def cozmo_pickup_object(self, object_id: int) -> str:
         """
-        Makes Cozmo pick up a specific object.
+        Makes Cozmo pick up a specific object. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id.
 
         Args:
             object_id: The ID of the LightCube to pick up.
@@ -286,6 +286,7 @@ class CozmoAPI:
         Returns:
             A string indicating the result, e.g., "Cozmo picked up object [object_id]."
         """
+        object_id = int(object_id)
         cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
         if cube and cube.object_id == object_id:
             action = self.robot.pickup_object(cube, num_retries=3)
@@ -293,13 +294,13 @@ class CozmoAPI:
             if action.has_succeeded:
                 return f"Cozmo picked up object {object_id}."
             else:
-                return f"Failed."
+                return f"Failed: {action.failure_reason}"
 
         return f"Cube with ID {object_id} not found."
 
     def cozmo_place_object(self, object_id: int) -> str:
         """
-        Makes Cozmo place the object he is carrying on the ground.
+        Makes Cozmo place the object he is carrying on top of the cube indicated by object_id. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id and it needs to be carrying an object in order to place it on top of the object_id passed as argument.
 
         Args:
             object_id: The ID of the object to place (currently only supports LightCubes).
@@ -308,22 +309,23 @@ class CozmoAPI:
             A string indicating the result, e.g., "Cozmo placed object [object_id]."
         """
         if self.robot.is_carrying_block:
-            cube = self.robot.world.get_light_cube(object_id)
-            if cube:
+            object_id = int(object_id)
+            cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
+            if cube and cube.object_id == object_id:
                 action = self.robot.place_object_on_ground_here(cube)
                 action.wait_for_completed(timeout=30)
                 if action.has_succeeded:
                     return f"Cozmo placed object {object_id}."
                 else:
-                    return "Failed."                
+                    return f"Failed: {action.failure_reason}"
             else:
-                return f"Cube with ID {object_id} not found."
+                return f"Cube with ID {object_id} not seen."
         else:
             return "Failed. Cozmo is not carrying an object."
 
     def cozmo_dock_with_cube(self, object_id: int) -> str:
         """
-        Makes Cozmo dock with a specific cube.
+        Makes Cozmo dock with a specific cube. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id of the cube to dock with.
 
         Args:
             object_id: The ID of the LightCube to dock with.
@@ -331,20 +333,21 @@ class CozmoAPI:
         Returns:
             A string indicating the result, e.g., "Cozmo docked with cube [object_id]."
         """
-        cube = self.robot.world.get_light_cube(object_id)
-        if cube:
+        object_id = int(object_id)
+        cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
+        if cube and cube.object_id == object_id:
             action = self.robot.dock_with_cube(cube)
             action.wait_for_completed(timeout=30)
             if action.has_succeeded:
                 return f"Cozmo docked with cube {object_id}."
             else:
-                return "Failed."
+                return f"Failed: {action.failure_reason}"
         else:
-            return f"Cube with ID {object_id} not found."
+            return f"Cube with ID {object_id} not seen."
 
     def cozmo_roll_cube(self, object_id: int) -> str:
         """
-        Makes Cozmo roll a specific cube.
+        Makes Cozmo roll a specific cube. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id of the cube to roll.
 
         Args:
             object_id: The ID of the LightCube to roll.
@@ -352,16 +355,17 @@ class CozmoAPI:
         Returns:
             A string indicating the result, e.g., "Cozmo rolled cube [object_id]."
         """
-        cube = self.robot.world.get_light_cube(object_id)
-        if cube:
+        object_id = int(object_id)
+        cube = self.robot.world.wait_for_observed_light_cube(timeout=30)
+        if cube and cube.object_id == object_id:
             action = self.robot.roll_cube(cube)
             action.wait_for_completed(timeout=30)
             if action.has_succeeded:
                 return f"Cozmo rolled cube {object_id}."
             else:
-                return "Failed."
+                return f"Failed: {action.failure_reason}"
         else:
-            return f"Cube with ID {object_id} not found."
+            return f"Cube with ID {object_id} not seen."
 
     def cozmo_start_behavior(self, behavior_name: str) -> str:
         """
@@ -699,9 +703,9 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_head(-0.3)',
         # 'cozmo_play_animation("anim_peekaboo_success_02")',
         # 'cozmo_play_song("C2, C2_Sharp, D2, D2_Sharp, E2, F2, F2_Sharp, G2, G2_Sharp, A2, A2_Sharp, B2")',
-        # 'cozmo_go_to_object(1, 5)',
-        # 'cozmo_pickup_object(2)',
-        # 'cozmo_place_object(1)',
+        'cozmo_go_to_object(1, 65)',
+        # 'cozmo_pickup_object(1)',
+        # 'cozmo_place_object(2)',
         # 'cozmo_dock_with_cube(1)',
         # 'cozmo_roll_cube(1)',
         # 'cozmo_start_behavior("behaviour")',
@@ -715,9 +719,9 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_is_localized()',
         # 'cozmo_set_headlight("On")',
         # 'cozmo_set_volume(50)',
-        # 'cozmo_pop_a_wheelie(1)',
+        # 'cozmo_pops_a_wheelie(1)',
         # 'cozmo_listens()',
-        'cozmo_set_backpack_lights(255, 0, 0)',
+        # 'cozmo_set_backpack_lights(255, 0, 0)',
     )
     results = robot_api.execute_commands("\n".join(commands))
     print(results)

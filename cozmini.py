@@ -128,8 +128,6 @@ def process_events(event_log, image_description=''):
             context += f'System message ({time}): {message}\n'
         elif message_type == EventType.SYSTEM_MESSAGE:
             context += f'System message ({time}): {message}\n'
-        else:
-            print(message_type, message)
 
     return context, stop
 
@@ -163,9 +161,6 @@ def cozmo_program(robot: cozmo.robot.Robot):
         history.seek(0)
         conversation_history = history.read()
 
-        print(prompt_instructions)
-        print(conversation_history)
-
         user_interface.start_ui_loop()
         voice_input.start_voice_input_loop()
         image = None
@@ -198,8 +193,10 @@ def cozmo_program(robot: cozmo.robot.Robot):
             try:
                 _, image = cozmo_robot_api.execute_commands(commands)
                 if image:
+                    cozmo_robot_api.cozmo_set_backpack_lights(255, 255, 255)
                     image = image.annotate_image()
                     image_description = get_image_description(models, image, model_log)
+                    cozmo_robot_api.cozmo_set_backpack_lights(0, 0, 0)                    
             except Exception as e:
                 traceback.print_exc()
 

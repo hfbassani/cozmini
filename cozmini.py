@@ -193,6 +193,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
             try:
                 _, image = cozmo_robot_api.execute_commands(commands)
                 if image:
+                    print("Cozmo is thinking about the image...")
                     cozmo_robot_api.cozmo_set_backpack_lights(255, 255, 255)
                     image = image.annotate_image()
                     image_description = get_image_description(models, image, model_log)

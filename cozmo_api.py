@@ -109,7 +109,7 @@ class CozmoAPI:
         else:
             return "Failed."
 
-    def cozmo_pop_a_wheelie(self, object_id: int) -> str:
+    def cozmo_pops_a_wheelie(self, object_id: int) -> str:
         """
         Makes Cozmo attempt to pop a wheelie using a specific cube.
         Before doing this, Cozmo needs to find a cube with cozmo_search_light_cube() which returns the get the object_id.
@@ -475,28 +475,27 @@ class CozmoAPI:
         else:
             return "Cozmo is not localized."
 
-    def cozmo_set_backpack_lights(self, color: str) -> str:
+    def cozmo_set_backpack_lights(self, R: int, G: int, B: int) -> str:
         """
-        Sets the color of Cozmo's backpack lights.
+        Sets the color of Cozmo's backpack lights. Set all channels to 0 to turn them off.
 
         Args:
-            color: The desired color (e.g., "red", "green", "blue", "white", "off").
+            R: Red channel from 0-255.
+            G: Green channel from 0-255.
+            B: Blue channel from 0-255.
 
         Returns:
-            A string indicating the result, e.g., "Cozmo's backpack lights set to [color]."
+            A string indicating the result, e.g., "Cozmo's backpack lights set to (R, G, B)."
         """
-        color = color.lower()
-        if color == "off":
+        if R == 0 and G == 0 and B == 0:
             self.robot.set_backpack_lights_off()
         else:
             try:
-                light = getattr(cozmo.lights, color)
-                if not light:
-                    return f"Invalid color: {color}"    
+                light = cozmo.lights.Light(cozmo.lights.Color(rgb=(int(R), int(G), int(B))))
                 self.robot.set_all_backpack_lights(light)
             except AttributeError:
-                return f"Invalid color: {color}"
-        return f"Cozmo's backpack lights set to {color}."
+                return f"Failed."
+        return f"Cozmo's backpack lights set to (R, G, B)."
 
     def cozmo_set_headlight(self, on_off: str) -> str:
         """
@@ -645,10 +644,10 @@ def _parse_api_call(api_call: str):
             arguments.append(arg_value)
         else:
             # If the argument is not a tuple or unary operation, extract its value directly
-            if arg.value:
+            if arg.value is not None:
                 arguments.append(arg.value)
             else:
-                print(arg)
+                print(f'invalid arg: {arg}.')
 
     return function_name, arguments
 
@@ -714,12 +713,11 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_is_charging()',
         # 'cozmo_is_carrying_object()',
         # 'cozmo_is_localized()',
-        # 'cozmo_set_backpack_lights("blue_light")',
         # 'cozmo_set_headlight("On")',
         # 'cozmo_set_volume(50)',
         # 'cozmo_pop_a_wheelie(1)',
         # 'cozmo_listens()',
-        'cozmo_set_backpack_lights(blue)'
+        'cozmo_set_backpack_lights(255, 0, 0)',
     )
     results = robot_api.execute_commands("\n".join(commands))
     print(results)

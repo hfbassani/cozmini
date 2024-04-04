@@ -256,16 +256,17 @@ class CozmoAPI:
 
     def cozmo_go_to_object(self, object_id: int, distance: float) -> str:
         """
-        Makes Cozmo drive to a specific object and stop at a specific distance from is center. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id. The closest distance Cozmo can get to a cube without bumping into it is 65mm.
+        Makes Cozmo drive to a specific object and stop at a specific distance from is center. Cozmo needs to find a cube first, using cozmo_search_light_cube() which returns the object_id. 
 
         Args:
             object_id: The ID of the object to approach.
-            distance: The distance from the object to stop (in millimeters). Should be usually greater than 65mm.
+            distance: The distance from the object to stop (in millimeters).
 
         Returns:
             A string indicating the result, e.g., "Cozmo went to object [object_id]."
         """
         object_id = int(object_id)
+        distance = distance + 64  # This is as close as Cozmo can get from cubes.
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.go_to_object(cube, distance_mm(distance), num_retries=2)
@@ -285,8 +286,12 @@ class CozmoAPI:
             object_id: The ID of the LightCube to pick up.
 
         Returns:
-            A string indicating the result, e.g., "Cozmo picked up object [object_id]."
+            A string indicating the result, e.g., "Cozmo picked up object [object_id]." or a Failure message.
         """
+
+        if self.robot.is_carrying_block:
+            return "Failed. Cozmo is already carrying an object."
+
         object_id = int(object_id)
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:

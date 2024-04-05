@@ -60,14 +60,14 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 # Requirements:
  - An Android or IOS device with the Cozmo App connected via USB to your PC or Mac
- - An [ai.google.dev](https://ai.google.dev/) key
+ - A [Gemini](https://ai.google.dev/) developer key
  - A [GCP](https://cloud.google.com/) project with billing enabled for speech-text (you can stay in the free tier)
  - A [Picovoice](https://picovoice.ai/) key and a [Porcupine](https://picovoice.ai/platform/porcupine/) keyword file for the "Hey, Cozmo" keyword detection.
 
 # Setting up and running:
  - Run `./setup/install_packs.sh` to install the required packages and create
    the virtual environment.
- - Get google.ai dev keys: https://ai.google.dev/
+ - Get a Gemini dev key: https://ai.google.dev/
  - Get your Picovoice keys and keyword file here: https://picovoice.ai/
  - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
  - Run `gcloud init` to set it up and follow the instructions

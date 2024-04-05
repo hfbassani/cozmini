@@ -78,4 +78,4 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
  export PICOVOICE_ACCESS_KEY=[enter your Picovoice key here]
  export GOOGLE_API_KEY=[enter your google API key here]
  ```
- - Finally, run `./start_cozmini.sh` and start interaction with Cozmini by voice or using the web browser UI.
+ - Finally, run `./start_cozmini.sh` and start interacting with Cozmini by voice or on the web browser UI.

@@ -2,10 +2,11 @@
 The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 # Features:
- - Speech-text and text-to-speech
- - "Hey, Cozmo" keyword detection
+ - Speech-text and text-to-speech.
+ - "Hey, Cozmo" keyword detection.
  - API with support for several Cozmo tricks, including grabbing images from Cozmo's camera.
- - Ease to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt)
+ - Easy to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt).
+ - Dev mode for when you don't have a Cozmo at hand.
 
 ## API made accessible to Gemini:
 
@@ -57,14 +58,13 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 * `cozmo_set_volume(volume: float)`: Sets Cozmo's speaker volume, returning a success message.
 
 
-
 # Requirements:
  - An Android or IOS device with the Cozmo App connected via USB to your PC or Mac
  - An [ai.google.dev](https://ai.google.dev/) key
  - A [GCP](https://cloud.google.com/) project with billing enabled for speech-text (you can stay in the free tier)
  - A [Picovoice](https://picovoice.ai/) key and a [Porcupine](https://picovoice.ai/platform/porcupine/) keyword file for the "Hey, Cozmo" keyword detection.
 
-# Setting up:
+# Setting up and running:
  - Run `./setup/install_packs.sh` to install the required packages and create
    the virtual environment.
  - Get google.ai dev keys: https://ai.google.dev/
@@ -72,11 +72,10 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
  - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
  - Run `gcloud init` to set it up and follow the instructions
  - Run `gcloud auth application-default login` to get credentials
-
- - Edit `keys/env_keys.sh` file in the `keys` directory, with the content below:
-
+ - Edit the `keys/env_keys.sh` with your keys and Picovoice keyword file:
  ```
  export PICOVOICE_KEYWORD_PATH=./keys/[enter your hey-cozmo*.ppn here]
  export PICOVOICE_ACCESS_KEY=[enter your Picovoice key here]
  export GOOGLE_API_KEY=[enter your google API key here]
  ```
+ - Finally, run `./start_cozmini.sh` and start interaction with Cozmini by voice or using the web browser UI.

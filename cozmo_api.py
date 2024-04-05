@@ -86,7 +86,7 @@ class CozmoAPI:
             A string indicating the result, e.g., "Cozmo said: [text]"
         """
         action = self.robot.say_text(text)
-        action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+        action.wait_for_completed(timeout=2*_DEFAULT_TIMEOUT)
         if action.has_succeeded:
             return f"succeeded."
         else:
@@ -550,13 +550,12 @@ class CozmoAPI:
         self.robot.set_robot_volume(volume)
         return f"Cozmo's volume set to {volume}."
     
-    def cozmo_captures_image(self):
+    def cozmo_sees(self):
         """
-        Makes Cozmo take a picture from his front camera.
+        Makes Cozmo take a picture from his front camera and describe what he sees in the image.
 
         Returns:
-            A string indicating success or failure. 
-            A description of the image will be provided in the system messages.
+            A string indicating success or failure. A description of the image will be provided in the system messages.
         """
         wait = 0
         while wait < _WAIT_TIMEOUT:
@@ -623,7 +622,7 @@ class CozmoAPI:
                         results.append(message)
                 except Exception as e:
                     traceback.print_exc()
-                    message = f"Result of {line}: API Call Error: {e}"
+                    message = f"Result of {line}: API Call Error: {type(e).__name__} {e}."
                     event_log.message(EventType.API_RESULT, message)
                     results.append(message)
 

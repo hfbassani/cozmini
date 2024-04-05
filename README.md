@@ -73,7 +73,7 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
  - Run `gcloud init` to set it up and follow the instructions
  - Run `gcloud auth application-default login` to get credentials
 
- - Create a `env_keys.sh` file in the `keys` directory, with the content below:
+ - Edit `keys/env_keys.sh` file in the `keys` directory, with the content below:
 
  ```
  export PICOVOICE_KEYWORD_PATH=./keys/[enter your hey-cozmo*.ppn here]

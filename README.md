@@ -2,15 +2,12 @@
 The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 # Features:
- - speech-text and text-to-speech
+ - Speech-text and text-to-speech
  - "Hey, Cozmo" keyword detection
  - API with support for several Cozmo tricks, including grabbing images from Cozmo's camera.
+ - Ease to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt)
 
-# API made accessible to Gemini:
-
-## Cozmo API Function Summary
-
-Here's a summary of the Cozmo API functions without the `self` argument:
+## API made accessible to Gemini:
 
 **Speech and Listening:**
 

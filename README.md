@@ -6,7 +6,7 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
  - "Hey, Cozmo" keyword detection.
  - API with support for several Cozmo tricks, including grabbing images from Cozmo's camera.
  - Easy to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt).
- - Dev mode for when you don't have a Cozmo at hand.
+ - Dev mode that simulates Cozmo for when you don't have it at hand.
 
 ## API made accessible to Gemini:
 

@@ -3,6 +3,7 @@ venv_cozmini/*
 
 # Ignore key files directories
 keys/*
+keys/env_keys.sh
 
 # Ignore user data
 user_data/*

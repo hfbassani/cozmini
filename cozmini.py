@@ -8,7 +8,7 @@ import user_interface as user_ui
 import user_voice_input
 from event_messages import event_log, EventType
 import traceback
-import time
+from collections import OrderedDict
 
 _CHAT_MODE = False
 _API_PROMPT = 'API calls'
@@ -111,6 +111,7 @@ def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
     return user_prompt, system_messages
 
 def process_events(event_log, image_description=''):
+    global _system_messages
     events = event_log.pop_all_events()
     time = datetime.now().strftime("%H:%M:%S")
     context = ''
@@ -119,6 +120,7 @@ def process_events(event_log, image_description=''):
     if image_description:
         context = f'System message ({time}): Result of cozmo_captures_image(): {image_description}\n'
 
+    _system_messages = {}
     for message_type, message in events:
         message = message.strip()
         if message_type == EventType.USER_MESSAGE:
@@ -128,9 +130,10 @@ def process_events(event_log, image_description=''):
         elif message_type == EventType.API_CALL:
             context += f'{_API_PROMPT}: {message}\n'
         elif message_type == EventType.API_RESULT:
+                context += f'System message ({time}): {message}\n'
+        elif message_type == EventType.SYSTEM_MESSAGE and message not in _system_messages:
             context += f'System message ({time}): {message}\n'
-        elif message_type == EventType.SYSTEM_MESSAGE:
-            context += f'System message ({time}): {message}\n'
+            _system_messages.add(message)
 
     return context, stop
 

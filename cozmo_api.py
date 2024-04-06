@@ -94,7 +94,7 @@ class CozmoAPI(CozmoAPIBase):
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.pop_a_wheelie(cube)
-            action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+            action.wait_for_completed(timeout=3*_DEFAULT_TIMEOUT)
             if action.has_succeeded:
                 return "Cozmo has performed a wheel stand!"
             else:
@@ -233,7 +233,7 @@ class CozmoAPI(CozmoAPIBase):
         look_around = self.robot.start_behavior(cozmo.behavior.BehaviorTypes.LookAroundInPlace)
         cube = None
         try:
-            cube = self.robot.world.wait_for_observed_light_cube(timeout=3*_DEFAULT_TIMEOUT)
+            cube = self.robot.world.wait_for_observed_light_cube(timeout=4*_DEFAULT_TIMEOUT)
 
         except asyncio.TimeoutError:
             self.robot.play_anim_trigger(cozmo.robot.anim.Triggers.MajorFail)
@@ -263,7 +263,7 @@ class CozmoAPI(CozmoAPIBase):
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.go_to_object(cube, distance_mm(distance), num_retries=2)
-            action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+            action.wait_for_completed(timeout=2*_DEFAULT_TIMEOUT)
             if action.has_succeeded:
                 return f"Cozmo went to object {object_id}."
             else:
@@ -289,7 +289,7 @@ class CozmoAPI(CozmoAPIBase):
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.pickup_object(cube, num_retries=3)
-            action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+            action.wait_for_completed(timeout=3*_DEFAULT_TIMEOUT)
             if action.has_succeeded:
                 return f"Cozmo picked up object {object_id}."
             else:
@@ -312,7 +312,7 @@ class CozmoAPI(CozmoAPIBase):
             cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
             if cube and cube.object_id == object_id:
                 action = self.robot.place_on_object(cube)
-                action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+                action.wait_for_completed(timeout=3*_DEFAULT_TIMEOUT)
                 if action.has_succeeded:
                     return f"Cozmo placed object {object_id}."
                 else:
@@ -333,10 +333,10 @@ class CozmoAPI(CozmoAPIBase):
             A string indicating the result, e.g., "Cozmo docked with cube [object_id]."
         """
         object_id = int(object_id)
-        cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
+        cube = self.robot.world.wait_for_observed_light_cube(timeout=2*_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.dock_with_cube(cube)
-            action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+            action.wait_for_completed(timeout=2*_DEFAULT_TIMEOUT)
             if action.has_succeeded:
                 return f"Cozmo docked with cube {object_id}."
             else:
@@ -358,7 +358,7 @@ class CozmoAPI(CozmoAPIBase):
         cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
         if cube and cube.object_id == object_id:
             action = self.robot.roll_cube(cube)
-            action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
+            action.wait_for_completed(timeout=3*_DEFAULT_TIMEOUT)
             if action.has_succeeded:
                 return f"Cozmo rolled cube {object_id}."
             else:

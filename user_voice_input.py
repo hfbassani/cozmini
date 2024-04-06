@@ -5,6 +5,7 @@ import struct
 import os
 from event_messages import event_log, EventType
 import threading
+import time
 
 class VoiceInput:
 
@@ -35,13 +36,13 @@ class VoiceInput:
         )
 
         self.trigger_listen = False
+        self.user_input = ''
 
         # Initializing Google Cloud TTS API client
         self.tts_client = texttospeech.TextToSpeechClient()
 
     def _record_audio(self, stream, rate, frame_length, record_seconds):
         event_log.message(EventType.VOICE_EVENT_LISTENING, "Listening...")
-        print("Listening ...", end='', flush=True)
         frames = []
         for _ in range(0, int(rate / frame_length * record_seconds)):
             try:
@@ -56,7 +57,6 @@ class VoiceInput:
 
     def _transcribe_audio(self, client, audio_data):
         """Function to convert speech to text using Google Speech-to-Text."""
-        print("Transcribing ...", end='', flush=True)
         audio = speech.RecognitionAudio(content=audio_data)
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -65,15 +65,24 @@ class VoiceInput:
             # language_code="pt-BR",
         )
         response = client.recognize(config=config, audio=audio)
+
         # Return text only if there are results
-        print(" |")
         if response.results:
             return response.results[0].alternatives[0].transcript
         else:
             return ''
 
-    def capture_user_input(self):
+    def wait_listening_finish(self):
+        while self.trigger_listen:
+                time.sleep(0.1)
+
+    def capture_user_input(self, block=False):
         self.trigger_listen = True
+
+        if block:
+            self.wait_listening_finish()            
+        return self.user_input
+   
 
     def _listen(self):
 
@@ -95,15 +104,19 @@ class VoiceInput:
             # Detecting wake word using Porcupine
             keyword_index = self.porcupine.process(pcm)
             if keyword_index >= 0:  # If wake word is detected
-                user_input = self._listen()
-                if user_input:
-                    event_log.message(EventType.USER_MESSAGE, "Hey, Cozmo. " + user_input)
-
-            if self.trigger_listen:
-                user_input = self._listen()
-                if user_input:
-                    event_log.message(EventType.USER_MESSAGE, user_input)
+                self.trigger_listen = True
+                self.user_input = self._listen()
+                if self.user_input:
+                    self.user_input = "Hey, Cozmo. " + self.user_input
+                    event_log.message(EventType.USER_MESSAGE, self.user_input)
                 self.trigger_listen = False
+
+            elif self.trigger_listen:
+                self.user_input = self._listen()
+                if self.user_input:
+                    event_log.message(EventType.USER_MESSAGE, self.user_input)
+                self.trigger_listen = False
+
 
     def __del__(self):
         if self.audio_stream:

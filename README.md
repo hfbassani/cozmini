@@ -12,37 +12,37 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 **Speech and Listening:**
 
-* `cozmo_listens()`: Listens for user input for 15 seconds and returns transcribed text (if any).
-* `cozmo_says(text: str)`: Makes Cozmo say the provided text and returns a success/failure message.
+* `cozmo_listens()`: Listens for user input for 15 seconds.
+* `cozmo_says(text: str)`: Makes Cozmo say the provided text.
 
 **Movement:**
 
-* `cozmo_drives(distance: float, speed: float)`: Makes Cozmo drive straight for a specified distance and speed, returning a success/failure message.
-* `cozmo_turns(angle: float)`: Makes Cozmo turn by a specified angle, returning a success/failure message.
-* `cozmo_lifts(height: float)`: Raises or lowers Cozmo's lift to a specific height, returning a success/failure message.
-* `cozmo_go_to_object(object_id: int, distance: float)`: Makes Cozmo drive to a specific object (using its ID) and stop at a certain distance, returning a success/failure message.
+* `cozmo_drives(distance: float, speed: float)`: Makes Cozmo drive straight for a specified distance and speed.
+* `cozmo_turns(angle: float)`: Makes Cozmo turn by a specified angle.
+* `cozmo_lifts(height: float)`: Raises or lowers Cozmo's lift to a specific height.
+* `cozmo_goes_to_object(object_id: int, distance: float)`: Makes Cozmo drive to a specific object (using its ID) and stop at a certain distance.
 
 **Object Interaction:**
 
-* `cozmo_pops_a_wheelie(object_id: int)`: Makes Cozmo attempt a wheelie using a light cube (specified by ID), returning a success/failure message.
-* `cozmo_pickup_object(object_id: int)`: Makes Cozmo pick up a light cube (specified by ID), returning a success/failure message.
-* `cozmo_place_object(object_id: int)`: Makes Cozmo place the carried object on a light cube (specified by ID), returning a success/failure message.
-* `cozmo_dock_with_cube(object_id: int)`: Makes Cozmo dock with a light cube (specified by ID), returning a success/failure message.
-* `cozmo_roll_cube(object_id: int)`: Makes Cozmo roll a light cube (specified by ID), returning a success/failure message.
-* `cozmo_search_light_cube()`: Makes Cozmo search for a light cube and returns its ID or a message indicating no cube was found.
+* `cozmo_searches_light_cube()`: Makes Cozmo search for a light cube and returns its ID or a message indicating no cube was found.
+* `cozmo_pops_a_wheelie(object_id: int)`: Makes Cozmo attempt a wheelie using a light cube (specified by ID).
+* `cozmo_picksup_object(object_id: int)`: Makes Cozmo pick up a light cube (specified by ID).
+* `cozmo_places_object(object_id: int)`: Makes Cozmo place the carried object on a light cube (specified by ID).
+* `cozmo_docks_with_cube(object_id: int)`: Makes Cozmo dock with a light cube (specified by ID).
+* `cozmo_rolls_cube(object_id: int)`: Makes Cozmo roll a light cube (specified by ID).
 * `cozmo_is_carrying_object()`: Checks if Cozmo is currently carrying an object, returning a confirmation or denial message.
 
 **Animations and Sounds:**
 
-* `cozmo_plays_animation(animation_name: str)`: Makes Cozmo play a specified animation, returning a success/failure message or indicating the animation is not found.
-* `cozmo_plays_song(song_notes: str)`: Makes Cozmo play a song with provided notes, returning a success/failure message or indicating a note is not supported.
+* `cozmo_plays_animation(animation_name: str)`: Makes Cozmo play a specified animation.
+* `cozmo_plays_song(song_notes: str)`: Makes Cozmo play a song with provided notes.
 
 **Behaviors:**
 
-* `cozmo_start_behavior(behavior_name: str)`: Starts a specific Cozmo behavior, returning a success/failure message or indicating the behavior is not found.
-* `cozmo_stop_behavior(behavior_name: str)`: Stops a specific Cozmo behavior, returning a success/failure message or indicating the behavior is not running.
-* `cozmo_start_freeplay()`: Starts Cozmo's freeplay mode, returning a success/failure message.
-* `cozmo_stop_freeplay()`: Stops Cozmo's freeplay mode, returning a success/failure message.
+* `cozmo_starts_behavior(behavior_name: str)`: Starts a specific Cozmo behavior
+* `cozmo_stops_behavior(behavior_name: str)`: Stops a specific Cozmo behavior.
+* `cozmo_starts_freeplay()`: Starts Cozmo's freeplay mode.
+* `cozmo_stops_freeplay()`: Stops Cozmo's freeplay mode.
 
 **Information and Status:**
 
@@ -53,9 +53,9 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
 **Lights and Volume:**
 
-* `cozmo_set_backpack_lights(R: int, G: int, B: int)`: Sets the color of Cozmo's backpack lights (or turns them off), returning a success message.
-* `cozmo_set_headlight(on_off: str)`: Turns Cozmo's headlight on or off, returning a success message or indicating an invalid option.
-* `cozmo_set_volume(volume: float)`: Sets Cozmo's speaker volume, returning a success message.
+* `cozmo_set_backpack_lights(R: int, G: int, B: int)`: Sets the color of Cozmo's backpack lights (or turns them off).
+* `cozmo_set_headlight(on_off: str)`: Turns Cozmo's headlight on or off.
+* `cozmo_set_volume(volume: float)`: Sets Cozmo's speaker volume.
 
 
 # Requirements:

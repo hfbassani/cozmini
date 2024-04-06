@@ -7,7 +7,7 @@ class EventType(Enum):
     API_RESULT = 3
     SYSTEM_MESSAGE = 4
     VOICE_EVENT_LISTENING = 5
-    VOICE_EVENT_FINISHED = 5
+    VOICE_EVENT_FINISHED = 6
 
 class EventMessages:
     

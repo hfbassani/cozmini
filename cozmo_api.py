@@ -36,12 +36,12 @@ class CozmoAPI(CozmoAPIBase):
 
     def cozmo_listens(self):
         """
-        Listens to the user for 10 seconds. This will block cozmo for 10 seconds.
+        Listens to the user for 10 seconds.
         
         Returns:
             A possibly imperfect, transcription of what the user said will be provided as system message.
         """
-        self.voice_input.capture_user_input(block=True)
+        self.voice_input.capture_user_input(block=False)
         return ''
 
     def cozmo_says(self, text: str) -> str:
@@ -311,7 +311,7 @@ class CozmoAPI(CozmoAPIBase):
             object_id = int(object_id)
             cube = self.robot.world.wait_for_observed_light_cube(timeout=_DEFAULT_TIMEOUT)
             if cube and cube.object_id == object_id:
-                action = self.robot.place_object_on_ground_here(cube)
+                action = self.robot.place_on_object(cube)
                 action.wait_for_completed(timeout=_DEFAULT_TIMEOUT)
                 if action.has_succeeded:
                     return f"Cozmo placed object {object_id}."

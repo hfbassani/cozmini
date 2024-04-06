@@ -11,6 +11,7 @@ import traceback
 import time
 
 _CHAT_MODE = False
+_API_PROMPT = 'API calls'
 
 def generate_reply(models, context, prompt, model_log=None):
 
@@ -75,30 +76,28 @@ def get_image_description(models, input_image, model_log=None):
                 print(f"Generation error: {e}\nTrying again: {retrie}.")
 
     return image_description
-                    
 
 def filter_response(response):
     commands = ''
     for line in response.splitlines():
         line = line.strip()
-        if not line.startswith(('API call:', 'cozmo_')):
+        if not line.startswith((_API_PROMPT, 'cozmo_')):
           event_log.message(EventType.API_RESULT, f'Got an invalid API call (Ignored): "{line}".\n')
           break
         elif line.startswith('cozmo_'):
             commands += line.strip() + '\n'
-        elif line.startswith('API call:'):
-            commands += line[len('API call:'):].strip() + '\n'
+        elif line.startswith(_API_PROMPT):
+            commands += line[len(f"{_API_PROMPT}: "):].strip() + '\n'
 
     return commands
 
 def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
-
     user_prompt = ''
     system_messages = ''
     commands = ''
     for cmd in response.splitlines():
-        if cmd.startswith('API call: '):
-            commands += f'{cmd[len("API call: "):].strip()}\n'
+        if cmd.startswith(_API_PROMPT):
+            commands += f'{cmd[len(f"{_API_PROMPT}: "):].strip()}\n'
 
     if commands:
         result = robot_api.execute_commands(commands)
@@ -127,7 +126,7 @@ def process_events(event_log, image_description=''):
                 stop = True
             context += 'User says: ' + message + '\n'
         elif message_type == EventType.API_CALL:
-            context += 'API call: ' + message + '\n'
+            context += f'{_API_PROMPT}: {message}\n'
         elif message_type == EventType.API_RESULT:
             context += f'System message ({time}): {message}\n'
         elif message_type == EventType.SYSTEM_MESSAGE:
@@ -183,7 +182,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
                 break
 
             context = prompt_instructions + conversation_history
-            prompt = new_context + 'API calls: '
+            prompt = new_context + f"{_API_PROMPT}: "
             user_interface.output_messges(prompt)
 
             print("Cozmo is thinking...")

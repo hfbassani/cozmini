@@ -7,7 +7,7 @@ Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
  - Speech-text and text-to-speech.
  - "Hey, Cozmo" keyword detection.
  - API with support for several Cozmo tricks, including grabbing images from Cozmo's camera.
- - Easy to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt).
+ - It's easy to customize Cozmini's personality. Just edit [cozmo_instructions.txt](https://github.com/hfbassani/cozmini/blob/main/cozmo_instructions.txt).
  - Dev mode that simulates Cozmo for when you don't have it at hand.
 
 ## API made accessible to Gemini:

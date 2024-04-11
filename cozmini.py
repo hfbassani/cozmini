@@ -20,7 +20,7 @@ def generate_reply(models, context, prompt, model_log=None):
         prompt = context + prompt
 
     output = ''
-    for retrie in range(4):
+    for retrie in range(5):
         try:
             if _CHAT_MODE:
                 response = models['chat'].send_message(prompt)
@@ -45,7 +45,7 @@ def generate_reply(models, context, prompt, model_log=None):
             raise KeyboardInterrupt
         
         except Exception as e: 
-            print(f"Generation error: {e}\nTrying again in 15: {retrie}.")
+            print(f"Generation error: {e}\nTrying again in 15s: {retrie}/5.")
             time.sleep(15)
 
     return output
@@ -75,7 +75,7 @@ def get_image_description(models, input_image, model_log=None):
                 raise KeyboardInterrupt
 
             except Exception as e: 
-                print(f"Generation error: {e}\nTrying again in 15: {retrie}.")
+                print(f"Generation error: {e}\nTrying again in 15s: {retrie}/5.")
                 time.sleep(15)
 
     return image_description
@@ -122,7 +122,7 @@ def process_events(event_log, image_description=''):
     stop = False
 
     if image_description:
-        context = f'System message ({time}): Result of cozmo_captures_image(): {image_description}\n'
+        context = f'System message ({time}): Result of cozmo_sees(): {image_description}\n'
 
     _system_messages = set()
     for message_type, message in events:
@@ -145,7 +145,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
     voice_input = user_voice_input.VoiceInput()
 
     now = datetime.now().strftime("%d/%m/%Y")
-    event_log.message(EventType.SYSTEM_MESSAGE, "Today's date is: " + now)
+    # event_log.message(EventType.SYSTEM_MESSAGE, "Today's date is: " + now)
 
     if robot:
         cozmo_robot_api = cozmo_api.CozmoAPI(robot, voice_input)

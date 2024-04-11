@@ -368,10 +368,9 @@ class CozmoAPI(CozmoAPIBase):
 
     def cozmo_starts_behavior(self, behavior_name: str) -> str:
         """
-        Starts a specific behavior for Cozmo to perform autonomously.
-        You shouldn't attempt to drive Cozmo during this, as it will clash
-        with whatever the current behavior is attempting to do and the calls will fail.
-        Use cozmo_stop_behavior() before using other functions.
+        Starts a specific behavior for Cozmo to perform autonomously. 
+        You should stop the behavior with cozmo_stop_behavior() before using any other API calls.
+        Any other API call made while a behavior is running will fail with a TimeoutError or other exception.
   
         Args:
             behavior_name: The name of the behavior to start among: FindFaces, KnockOverCubes, LookAroundInPlace, PounceOnMotion, RollBlock, StackBlocks, EnrollFace

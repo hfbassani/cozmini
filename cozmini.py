@@ -120,7 +120,7 @@ def process_events(event_log, image_description=''):
     if image_description:
         context = f'System message ({time}): Result of cozmo_captures_image(): {image_description}\n'
 
-    _system_messages = {}
+    _system_messages = set()
     for message_type, message in events:
         message = message.strip()
         if message_type == EventType.USER_MESSAGE:

@@ -9,8 +9,9 @@ import user_voice_input
 from event_messages import event_log, EventType
 import traceback
 from collections import OrderedDict
+import time
 
-_CHAT_MODE = False
+_CHAT_MODE = True
 _API_PROMPT = 'API calls'
 
 def generate_reply(models, context, prompt, model_log=None):
@@ -44,7 +45,8 @@ def generate_reply(models, context, prompt, model_log=None):
             raise KeyboardInterrupt
         
         except Exception as e: 
-            print(f"Generation error: {e}\nTrying again: {retrie}.")
+            print(f"Generation error: {e}\nTrying again in 15: {retrie}.")
+            time.sleep(15)
 
     return output
     
@@ -53,19 +55,19 @@ def get_image_description(models, input_image, model_log=None):
     if input_image:
         for retrie in range(4):
             try:
-                for retrie in range(4):
-                    image_prompt = "Anki Cozmo robot captured this image. Describe what cozmo sees in the image."
-                    response = models['text_image_model'].generate_content([image_prompt, input_image], stream=False)
-                    response.resolve()
-                    image_description = response.text.strip()
+                image_prompt = "Anki Cozmo robot captured this image. Describe what cozmo sees in the image."
+                response = models['text_image_model'].generate_content([image_prompt, input_image], stream=False)
+                response.resolve()
+                image_description = response.text.strip()
 
-                    if model_log:
-                        model_log.write('\n======== IMAGE PROMPT ========\n')
-                        model_log.write(image_prompt+'\n')
-                        model_log.write('\n======== IMAGE OUTPUT ========\n')
-                        model_log.write(image_description)
-                        model_log.flush()
+                if model_log:
+                    model_log.write('\n======== IMAGE PROMPT ========\n')
+                    model_log.write(image_prompt+'\n')
+                    model_log.write('\n======== IMAGE OUTPUT ========\n')
+                    model_log.write(image_description)
+                    model_log.flush()
 
+                return image_description
             except BlockedPromptException as e:
                 print("AI response was blocked due to safety concerns. Please try a different input.")
         
@@ -73,7 +75,8 @@ def get_image_description(models, input_image, model_log=None):
                 raise KeyboardInterrupt
 
             except Exception as e: 
-                print(f"Generation error: {e}\nTrying again: {retrie}.")
+                print(f"Generation error: {e}\nTrying again in 15: {retrie}.")
+                time.sleep(15)
 
     return image_description
 
@@ -151,8 +154,8 @@ def cozmo_program(robot: cozmo.robot.Robot):
         user_interface = user_ui.UserInterface(None)
 
     models = {
-        'text_model': genai.GenerativeModel('gemini-pro'),
-        # 'text_model': genai.GenerativeModel('gemini-1.5-pro'),
+        # 'text_model': genai.GenerativeModel('gemini-pro'),
+        'text_model': genai.GenerativeModel('gemini-1.5-pro-latest'),
         'text_image_model': genai.GenerativeModel('gemini-pro-vision'),
     }
 
@@ -206,7 +209,9 @@ def cozmo_program(robot: cozmo.robot.Robot):
                     cozmo_robot_api.set_backpack_lights(cozmo.lights.white_light)
                     image = image.annotate_image()
                     image_description = get_image_description(models, image, model_log)
-                    cozmo_robot_api.restore_backpack_lights()                   
+                    cozmo_robot_api.restore_backpack_lights()
+                else:
+                    image_description = None
             except Exception as e:
                 traceback.print_exc()
 

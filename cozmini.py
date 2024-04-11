@@ -155,8 +155,8 @@ def cozmo_program(robot: cozmo.robot.Robot):
         user_interface = user_ui.UserInterface(None)
 
     models = {
-        # 'text_model': genai.GenerativeModel('gemini-pro'),
-        'text_model': genai.GenerativeModel('gemini-1.5-pro-latest'),
+        'text_model': genai.GenerativeModel('gemini-pro'),
+        # 'text_model': genai.GenerativeModel('gemini-1.5-pro-latest'),
         'text_image_model': genai.GenerativeModel('gemini-pro-vision'),
     }
 

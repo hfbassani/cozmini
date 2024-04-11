@@ -1,6 +1,8 @@
 # Cozmini
 The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
 
+Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
+
 # Features:
  - Speech-text and text-to-speech.
  - "Hey, Cozmo" keyword detection.
@@ -80,4 +82,4 @@ The [Gemini](https://gemini.google.com/) language model powers Cozmo's mind!
  export GOOGLE_API_KEY=[enter your google API key here]
  ```
  - [If using an Android Device] Install [ADB](https://developer.android.com/tools/releases/platform-tools) and edit `/setup/set_env.sh` to point the variable ADB_PATH to the platform-tools directory on the ADB installation path.
- - Finally, run `./start_cozmini.sh` and start interacting with Cozmini by voice or on the web browser UI.
+ - Finally, run `./start_cozmini.sh` and start interacting with Cozmini by voice or on the web browser UI at http://127.0.0.1:5000.

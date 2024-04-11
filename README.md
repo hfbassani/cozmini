@@ -83,3 +83,7 @@ Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
  ```
  - [If using an Android Device] Install [ADB](https://developer.android.com/tools/releases/platform-tools) and edit `/setup/set_env.sh` to point the variable ADB_PATH to the platform-tools directory on the ADB installation path.
  - Finally, run `./start_cozmini.sh` and start interacting with Cozmini by voice or on the web browser UI at http://127.0.0.1:5000.
+
+# Disclaimer
+
+- Note that text, audio, and images captured by Cozmo will be sent to Gemini.

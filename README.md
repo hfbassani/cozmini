@@ -86,4 +86,4 @@ Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
 
 # Disclaimer
 
-- Note that text, audio, and images captured by Cozmo will be sent to Gemini.
+- Note that text, audio, and images captured will be sent to Gemini, so look at their [terms of service](https://ai.google.dev/terms)

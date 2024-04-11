@@ -84,13 +84,14 @@ def filter_response(response):
     commands = ''
     for line in response.splitlines():
         line = line.strip()
-        if not line.startswith((_API_PROMPT, 'cozmo_')):
-          event_log.message(EventType.API_RESULT, f'Got an invalid API call (Ignored): "{line}".\n')
-          break
-        elif line.startswith('cozmo_'):
-            commands += line.strip() + '\n'
-        elif line.startswith(_API_PROMPT):
-            commands += line[len(f"{_API_PROMPT}: "):].strip() + '\n'
+        if line:
+            if not line.startswith((_API_PROMPT, 'cozmo_')):
+                event_log.message(EventType.API_RESULT, f'Got an invalid API call (Ignored): "{line}".\n')
+                break
+            elif line.startswith('cozmo_'):
+                commands += line.strip() + '\n'
+            elif line.startswith(_API_PROMPT):
+                commands += line[len(f"{_API_PROMPT}: "):].strip() + '\n'
 
     return commands
 

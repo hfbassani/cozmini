@@ -64,23 +64,25 @@ Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
  - An Android or IOS device with the Cozmo App connected via USB to your PC or Mac;
  - A [Gemini](https://ai.google.dev/) developer key;
  - A [GCP](https://cloud.google.com/) project with billing enabled for speech-text (you can stay in the free tier);
- - A [Picovoice](https://picovoice.ai/) key and a [Porcupine](https://picovoice.ai/platform/porcupine/) keyword file for the "Hey, Cozmo" keyword detection;
- - [ADB](https://developer.android.com/tools/releases/platform-tools) (Android Platform Tools) if using an Android device.
+  - [ADB](https://developer.android.com/tools/releases/platform-tools) (Android Platform Tools) if using an Android device.
 
 # Setting up and running:
  - Run `./setup/install_packs.sh` to install the required packages and create
    the virtual environment.
  - Get a Gemini dev key: https://ai.google.dev/
- - Get your Picovoice keys and keyword file here: https://picovoice.ai/
- - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+  - Install gcloud CLI: https://cloud.google.com/sdk/docs/install
  - Run `gcloud init` to set it up and follow the instructions.
  - Run `gcloud auth application-default login` to get credentials.
- - Edit the `keys/env_keys.sh` with your keys and Picovoice keyword file:
- ```
- export PICOVOICE_KEYWORD_PATH=./keys/[enter your hey-cozmo*.ppn here]
- export PICOVOICE_ACCESS_KEY=[enter your Picovoice key here]
- export GOOGLE_API_KEY=[enter your google API key here]
- ```
+ - Edit the `keys/env_keys.sh` with your keys
+ 
+  Example:
+  ```
+  # When you change this file, to prevent sending keys to the repository run:
+  # git update-index --assume-unchanged keys/*
+
+  export GOOGLE_API_KEY=[enter your google API key here]
+  ```
+
  - [If using an Android Device] Install [ADB](https://developer.android.com/tools/releases/platform-tools) and edit `/setup/set_env.sh` to point the variable ADB_PATH to the platform-tools directory on the ADB installation path.
  - Finally, run `./start_cozmini.sh` and start interacting with Cozmini by voice or on the web browser UI at http://127.0.0.1:5000.
 
@@ -89,4 +91,4 @@ Based on [Cozmo SDK](https://github.com/anki/cozmo-python-sdk)
 
 # Disclaimer
 
-- Note that text, audio, and images captured will be sent to Gemini, so look at their [terms of service](https://ai.google.dev/terms)
+- Note that text, audio, and images captured will be sent to Gemini, so look at its [terms of service](https://ai.google.dev/terms)

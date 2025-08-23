@@ -60,21 +60,11 @@ class CozmoAPIBase:
         self.robot = robot
         self.user_input = user_input
         self.cozmo_events = CozmoEvents(robot)
-        event_log.add_callback(self._event_calback)
         self.image = None
         self.backpack_light = None
 
     def set_user_input(self, user_input):
         self.user_input = user_input
-
-    def _event_calback(self, event):
-        event_type, event_message = event
-        if event_type == EventType.VOICE_EVENT_LISTENING:
-            # Set backpack lights to blue to indicate that Cozmo is listening
-            self.robot.set_all_backpack_lights(cozmo.lights.blue_light)
-        elif event_type == EventType.VOICE_EVENT_FINISHED:
-            # Restor previous color when finished listening
-            self.restore_backpack_lights()
    
     def set_backpack_lights(self, light: cozmo.lights.Light):
         """Set the backpack lights without the API internal light state so that it can be restored later."""

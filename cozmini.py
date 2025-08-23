@@ -20,6 +20,12 @@ _COZMO_TOOLS = types.Tool(function_declarations=cozmo_api.get_function_declarati
 _GEMINI_MODEL = 'gemini-2.5-flash'
 ToolCall = namedtuple("ToolCalls", ["name", "args"])
 
+# APIs:
+_cozmo_robot_api = None
+_user_interface = None
+_user_input = None
+
+
 def generate_response(model, prompt, image, context, model_log=None):
 
     if not _CHAT_MODE:
@@ -73,6 +79,31 @@ def generate_response(model, prompt, image, context, model_log=None):
 
     return output, tool_calls
 
+def handle_event(event):
+    global _cozmo_robot_api, _user_interface
+
+    message_type, message = event
+    if message_type == EventType.VOICE_EVENT_LISTENING:
+        if _cozmo_robot_api:
+            _cozmo_robot_api.set_backpack_lights(cozmo.lights.green_light)
+        if _user_interface:
+            _user_interface.output_messges("Cozmo is listening...")
+        print("Cozmo is listening...")
+    elif message_type == EventType.VOICE_EVENT_FINISHED:
+        if _cozmo_robot_api:
+            _cozmo_robot_api.restore_backpack_lights()
+        if _user_interface:
+            _user_interface.output_messges("Cozmo has stopped listening.")
+        print("Cozmo has stopped listening.")
+    elif message_type == EventType.USER_MESSAGE:
+        # Handle user messages
+        pass
+    elif message_type == EventType.API_CALL:
+        # Handle API calls
+        pass
+    elif message_type == EventType.SYSTEM_MESSAGE:
+        # Handle system messages
+        pass
 
 def process_events(event_log):
     global _system_messages
@@ -98,6 +129,7 @@ def process_events(event_log):
 
     return context, stop
 
+
 def format_tool_call(tool_call: dict) -> str:
     tool_call_output = ""
     if tool_call["success"]:
@@ -115,9 +147,14 @@ def format_tool_call(tool_call: dict) -> str:
 
     return f"    {tool_call['function_name']}({args}) -> {tool_call_output}\n"
 
+
 def cozmo_program(robot: cozmo.robot.Robot):
+    global _cozmo_robot_api, _user_interface, _user_input
+
+    event_log.add_callback(handle_event)
+
     now = datetime.now().strftime("%d/%m/%Y")
-    # event_log.message(EventType.SYSTEM_MESSAGE, "Today's date is: " + now)
+    event_log.message(EventType.SYSTEM_MESSAGE, "Today's date is: " + now)
 
     model_log = None
     model_log = open('user_data/model_log.txt', 'w')
@@ -153,34 +190,34 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
         
         if robot:
-            cozmo_robot_api = cozmo_api.CozmoAPI(robot)
+            _cozmo_robot_api = cozmo_api.CozmoAPI(robot)
         else:
-            cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby()
+            _cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby()
 
-        user_interface = user_ui.UserInterface(cozmo_robot_api.get_image_from_camera)
-        user_input = user_voice_input.VoiceInput()
-        if not user_input:
-            user_input = user_interface
+        _user_interface = user_ui.UserInterface(_cozmo_robot_api.get_image_from_camera)
+        _user_input = user_voice_input.VoiceInput()
+        if not _user_input:
+            _user_input = _user_interface
 
-        cozmo_robot_api.set_user_input(user_input)
-        user_interface.start_loop()
-        if user_input and user_input != user_interface:
-            user_input.start_loop()
+        _cozmo_robot_api.set_user_input(_user_input)
+        _user_interface.start_loop()
+        if _user_input and _user_input != _user_interface:
+            _user_input.start_loop()
 
         image = None
         while True:
-            if user_input:
-                user_input.wait_input_finish() # let user finish talikng to include their input
+            if _user_input:
+                _user_input.wait_input_finish() # let user finish talikng to include their input
             event_context, stop = process_events(event_log)
             if stop:
                 break
 
             new_prompt = event_context + f"{_API_PROMPT}:\n"
-            user_interface.output_messges(new_prompt)
+            _user_interface.output_messges(new_prompt)
             history.write(new_prompt)
 
             print("Cozmo is thinking...")
-            cozmo_robot_api.set_backpack_lights(cozmo.lights.white_light)
+            _cozmo_robot_api.set_backpack_lights(cozmo.lights.white_light)
             response, tool_calls = generate_response(model=chat_model, prompt=new_prompt, image=image, context=conversation_history, model_log=model_log)
             if response:
                 cozmo_says_tool_call = ToolCall(name="cozmo_says", args={"text": response})
@@ -188,13 +225,12 @@ def cozmo_program(robot: cozmo.robot.Robot):
 
             results = []
             try:
-                cozmo_robot_api.set_backpack_lights(cozmo.lights.red_light)
-                results, image = cozmo_robot_api.execute_tool_calls(tool_calls)
+                results, image = _cozmo_robot_api.execute_tool_calls(tool_calls)
                 if image and hasattr(image, 'annotate_image'):
                     image = image.annotate_image()
             except Exception as e:
                 traceback.print_exc()
-            cozmo_robot_api.restore_backpack_lights()
+            _cozmo_robot_api.restore_backpack_lights()
 
             result_context = ""
             if results:
@@ -202,7 +238,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
                 result_context += result_message
 
             conversation_history += new_prompt + result_context
-            user_interface.output_messges(result_context)
+            _user_interface.output_messges(result_context)
             history.write(result_context)
             history.flush()
 

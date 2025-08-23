@@ -12,7 +12,7 @@ from event_messages import event_log
 import user_voice_input
 
 
-_DEFAULT_TIMEOUT = 15 # seconds
+_DEFAULT_TIMEOUT = 10 # seconds
 
 
 def get_api_description() -> str:
@@ -259,8 +259,8 @@ class CozmoAPI(CozmoAPIBase):
                 return f"Cozmo played animation: {animation_name}"
             else:
                 return f"Failed: {action.failure_reason}"
-        except KeyError:
-            return f"Animation '{animation_name}' not found."
+        except:
+            return f"Animation {animation_name} not found."
 
     def cozmo_plays_song(self, song_notes: str) -> str:
         """
@@ -648,7 +648,7 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
         # 'cozmo_turns(-30.5)',
         # 'cozmo_lifts(0.5)',
         # 'cozmo_head(-0.3)',
-        # 'cozmo_play_animation("anim_peekaboo_success_02")',
+        'cozmo_plays_animation("anim_greeting_happy_03")',
         # 'cozmo_plays_song("C2, C2_Sharp, D2, D2_Sharp, E2, F2, F2_Sharp, G2, G2_Sharp, A2, A2_Sharp, B2")',
         # 'cozmo_go_to_object(1, 65)',
         # 'cozmo_pickup_object(1)',

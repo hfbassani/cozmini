@@ -18,7 +18,6 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         self.succeed = succeed  # Flag to simulate success/failure
         self.robot = robot
         self.user_input = user_input
-        event_log.add_callback(self._event_calback)
         self.image = None
         self.video_capture = cv2.VideoCapture(0)
         self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
@@ -26,15 +25,6 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
 
     def set_user_input(self, user_input):
         self.user_input = user_input
-
-    def _event_calback(self, event):
-        event_type, event_message = event
-        if event_type == EventType.VOICE_EVENT_LISTENING:
-            print("Cozmo is listening...")
-        elif event_type == EventType.VOICE_EVENT_FINISHED:
-            print("Cozmo has finished listening.")
-
-        return False
 
     def set_backpack_lights(self, light: cozmo.lights.Light):
         """Set the backpack lights without the API internal light state so that it can be restored later."""

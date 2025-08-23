@@ -168,7 +168,6 @@ class CozmoConnection(event.Dispatcher, clad_protocol.CLADProtocol):
         #: available animation names
         self.anim_names = self.anim_names_factory(self)
 
-
     #### Private Methods ####
 
     def __repr__(self):

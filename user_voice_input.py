@@ -13,7 +13,7 @@ def init_voice_input():
 
 class VoiceInput:
 
-    RECORD_TIME = 10
+    RECORD_TIME = 5
 
     def __init__(self):
         self.audio_stream = None

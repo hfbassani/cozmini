@@ -1,9 +1,11 @@
-import cozmo
-from cozmo.util import degrees, distance_mm, speed_mmps
-from cozmo.song import NoteTypes, SongNote, NoteDurations
+from cozmo_custom import cozmo
+from cozmo_custom.cozmo.util import degrees, distance_mm, speed_mmps
+from cozmo_custom.cozmo.song import NoteTypes, SongNote, NoteDurations
 import asyncio
 import time
 import traceback
+import inspect
+import re
 
 from cozmo_api_base import CozmoAPIBase
 from event_messages import event_log
@@ -28,6 +30,78 @@ def get_api_description() -> str:
 
     return description
 
+def is_snake_case(s: str) -> bool:
+    """
+    Checks if a string is in snake_case format.
+    
+    A string is considered snake_case if it is all lowercase
+    and words are separated by underscores.
+    """
+    if not isinstance(s, str):
+        return False
+    # Check for empty string or strings with leading/trailing underscores
+    if not s or s.startswith('_') or s.endswith('_'):
+        return False
+    # Check if the string contains any uppercase letters
+    if any(c.isupper() for c in s):
+        return False
+    # Check if words are separated by underscores
+    return re.match(r'^[a-z_]+$', s) is not None and '__' not in s
+
+def get_function_declarations():
+    """
+    Returns a list of FunctionDeclaration objects for all public methods of a class.
+    
+    Raises a ValueError if any method name is not in snake_case.
+    The description is taken from the method's docstring.
+    Parameters and their types are inferred from the method's signature.
+    
+    Args:
+        cls: The class to inspect.
+        
+    Returns:
+        A list of dictionaries representing the FunctionDeclaration objects.
+    """
+    function_declarations = []
+    
+    for name, method in inspect.getmembers(CozmoAPI, inspect.isfunction):
+        if name.startswith('cozmo_'):
+            if not is_snake_case(name):
+                raise ValueError(f"Method name '{name}' is not in snake_case format.")
+
+            description = inspect.getdoc(method) or ""
+            signature = inspect.signature(method)
+            
+            properties = {}
+            for param_name, param in signature.parameters.items():
+                if param_name != 'self':
+                    # Validate parameter name is also snake_case
+                    if not is_snake_case(param_name):
+                        raise ValueError(f"Parameter name '{param_name}' for method '{name}' is not in snake_case format.")
+                        
+                    param_type = "string"
+                    if param.annotation is not inspect.Parameter.empty:
+                        if param.annotation == int:
+                            param_type = "integer"
+                        elif param.annotation == bool:
+                            param_type = "boolean"
+                        # Additional types can be added here
+                    
+                    properties[param_name] = {
+                        "type": param_type,
+                        "description": ""
+                    }
+                    
+            function_declarations.append({
+                "name": name,
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                }
+            })
+            
+    return function_declarations
 
 class CozmoAPI(CozmoAPIBase):
     """
@@ -41,7 +115,8 @@ class CozmoAPI(CozmoAPIBase):
         Returns:
             A possibly imperfect, transcription of what the user said will be provided as system message.
         """
-        self.voice_input.capture_user_input(block=False)
+        if self.user_input:
+            self.user_input.capture_user_input(block=False)
         return ''
 
     def cozmo_says(self, text: str) -> str:
@@ -54,7 +129,8 @@ class CozmoAPI(CozmoAPIBase):
         Returns:
             A string indicating the result, e.g., "Cozmo said: [text]"
         """
-        self.voice_input.wait_listening_finish() # don't interrupt speech
+        if self.user_input:
+            self.user_input.wait_input_finish() # don't interrupt speech
         action = self.robot.say_text(text)
         action.wait_for_completed(timeout=2*_DEFAULT_TIMEOUT)
         if action.has_succeeded:
@@ -477,7 +553,7 @@ class CozmoAPI(CozmoAPIBase):
         else:
             return "Cozmo is not localized."
 
-    def cozmo_sets_backpack_lights(self, R: int, G: int, B: int) -> str:
+    def cozmo_sets_backpack_lights(self, r: int, g: int, b: int) -> str:
         """
         Sets the color of Cozmo's backpack lights. Set all channels to 0 to turn them off.
 
@@ -489,16 +565,16 @@ class CozmoAPI(CozmoAPIBase):
         Returns:
             A string indicating the result, e.g., "Cozmo's backpack lights set to (R, G, B)."
         """
-        if R == 0 and G == 0 and B == 0:
+        if r == 0 and g == 0 and b == 0:
             self.robot.set_backpack_lights_off()
             self.backpack_light = None
         else:
             try:
-                self.backpack_light = cozmo.lights.Light(cozmo.lights.Color(rgb=(int(R), int(G), int(B))))
+                self.backpack_light = cozmo.lights.Light(cozmo.lights.Color(rgb=(int(r), int(g), int(b))))
                 self.robot.set_all_backpack_lights(self.backpack_light)
             except AttributeError:
                 return f"Failed."
-        return f"Cozmo's backpack lights set to ({R}, {G}, {B})."
+        return f"Cozmo's backpack lights set to ({r}, {g}, {b})."
 
     def cozmo_sets_headlight(self, on_off: str) -> str:
         """
@@ -542,9 +618,14 @@ class CozmoAPI(CozmoAPIBase):
         """
         self.image = self.get_image_from_camera()
         if self.image:
-            return "" # Result will be provide by the generative model after inspecting the image
+            return "an image was captured"
         else:
             return "Failed."
+
+    def get_image_from_camera(self):
+        self.robot.camera.color_image_enabled = True
+        self.robot.camera.image_stream_enabled = True
+        return self.robot.world.latest_image
 
 ### End of CozmoAPI class ###
 
@@ -554,14 +635,15 @@ def _cozmo_test_program(robot: cozmo.robot.Robot):
     def print_events(event):
         print(event)
 
-    print(CozmoAPI.get_api_description())
+    print(get_api_description())
     event_log.add_callback(print_events)
     voice_input = user_voice_input.VoiceInput()
-    voice_input.start_voice_input_loop()
+    if voice_input:
+        voice_input.start_loop()
     robot_api = CozmoAPI(robot, voice_input)
     commands = (
         # 'cozmo_search_light_cube()',
-        # 'cozmo_says("Nice to meet you, Alan!")',
+         'cozmo_says("Nice to meet you, Alan!")',
         # 'cozmo_drives(5, 5)',
         # 'cozmo_turns(-30.5)',
         # 'cozmo_lifts(0.5)',

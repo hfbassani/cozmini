@@ -638,7 +638,7 @@ class OpenGLViewer():
             self.viewer_window = OpenGLWindow(self.main_window.width, 0, 640, 480,
                                               b"Cozmo CameraFeed", is_3d=False)
 
-        self.cozmo_object = None  # type: RenderableObject
+        self.cozmobject = None  # type: RenderableObject
         self.cube_objects = []
 
         self._latest_world_frame = None  # type: WorldRenderFrame
@@ -852,7 +852,7 @@ class OpenGLViewer():
 
 
     def _draw_cozmo(self, robot_frame):
-        if self.cozmo_object is None:
+        if self.cozmobject is None:
             return
 
         robot_pose = robot_frame.pose
@@ -897,17 +897,17 @@ class OpenGLViewer():
         HEAD_PIVOT_Z = 4.75
 
         # Render the static body meshes - first the main body:
-        glCallList(self.cozmo_object.meshes["body_geo"])
+        glCallList(self.cozmobject.meshes["body_geo"])
         # Render the left treads and wheels
-        glCallList(self.cozmo_object.meshes["trackBase_L_geo"])
-        glCallList(self.cozmo_object.meshes["wheel_BL_geo"])
-        glCallList(self.cozmo_object.meshes["wheel_FL_geo"])
-        glCallList(self.cozmo_object.meshes["tracks_L_geo"])
+        glCallList(self.cozmobject.meshes["trackBase_L_geo"])
+        glCallList(self.cozmobject.meshes["wheel_BL_geo"])
+        glCallList(self.cozmobject.meshes["wheel_FL_geo"])
+        glCallList(self.cozmobject.meshes["tracks_L_geo"])
         # Render the right treads and wheels
-        glCallList(self.cozmo_object.meshes["trackBase_R_geo"])
-        glCallList(self.cozmo_object.meshes["wheel_BR_geo"])
-        glCallList(self.cozmo_object.meshes["wheel_FR_geo"])
-        glCallList(self.cozmo_object.meshes["tracks_R_geo"])
+        glCallList(self.cozmobject.meshes["trackBase_R_geo"])
+        glCallList(self.cozmobject.meshes["wheel_BR_geo"])
+        glCallList(self.cozmobject.meshes["wheel_FR_geo"])
+        glCallList(self.cozmobject.meshes["tracks_R_geo"])
 
         # Render the fork at the front (but not the arms)
         glPushMatrix()
@@ -920,7 +920,7 @@ class OpenGLViewer():
         glRotatef(-lift_angle, 0, 1, 0)
         glTranslatef(-FORK_PIVOT_X, 0.0, -FORK_PIVOT_Z)
         # Render
-        glCallList(self.cozmo_object.meshes["fork_geo"])
+        glCallList(self.cozmobject.meshes["fork_geo"])
         glPopMatrix()
 
         # Render the upper arms:
@@ -930,8 +930,8 @@ class OpenGLViewer():
         glRotatef(lift_angle, 0, 1, 0)
         glTranslatef(-UPPER_ARM_PIVOT_X, 0.0, -UPPER_ARM_PIVOT_Z)
         # Render
-        glCallList(self.cozmo_object.meshes["uprArm_L_geo"])
-        glCallList(self.cozmo_object.meshes["uprArm_geo"])
+        glCallList(self.cozmobject.meshes["uprArm_L_geo"])
+        glCallList(self.cozmobject.meshes["uprArm_geo"])
         glPopMatrix()
 
         # Render the lower arms:
@@ -941,8 +941,8 @@ class OpenGLViewer():
         glRotatef(lift_angle, 0, 1, 0)
         glTranslatef(-LOWER_ARM_PIVOT_X, 0.0, -LOWER_ARM_PIVOT_Z)
         # Render
-        glCallList(self.cozmo_object.meshes["lwrArm_L_geo"])
-        glCallList(self.cozmo_object.meshes["lwrArm_R_geo"])
+        glCallList(self.cozmobject.meshes["lwrArm_L_geo"])
+        glCallList(self.cozmobject.meshes["lwrArm_R_geo"])
         glPopMatrix()
 
         # Render the head:
@@ -952,21 +952,21 @@ class OpenGLViewer():
         glRotatef(-head_angle, 0, 1, 0)
         glTranslatef(-HEAD_PIVOT_X, 0.0, -HEAD_PIVOT_Z)
         # Render all of the head meshes
-        glCallList(self.cozmo_object.meshes["head_geo"])
+        glCallList(self.cozmobject.meshes["head_geo"])
         # Screen
-        glCallList(self.cozmo_object.meshes["backScreen_mat"])
-        glCallList(self.cozmo_object.meshes["screenEdge_geo"])
-        glCallList(self.cozmo_object.meshes["overscan_1_geo"])
+        glCallList(self.cozmobject.meshes["backScreen_mat"])
+        glCallList(self.cozmobject.meshes["screenEdge_geo"])
+        glCallList(self.cozmobject.meshes["overscan_1_geo"])
         # Eyes
-        glCallList(self.cozmo_object.meshes["eye_L_geo"])
-        glCallList(self.cozmo_object.meshes["eye_R_geo"])
+        glCallList(self.cozmobject.meshes["eye_L_geo"])
+        glCallList(self.cozmobject.meshes["eye_R_geo"])
         # Eyelids
-        glCallList(self.cozmo_object.meshes["eyeLid_R_top_geo"])
-        glCallList(self.cozmo_object.meshes["eyeLid_L_top_geo"])
-        glCallList(self.cozmo_object.meshes["eyeLid_L_btm_geo"])
-        glCallList(self.cozmo_object.meshes["eyeLid_R_btm_geo"])
+        glCallList(self.cozmobject.meshes["eyeLid_R_top_geo"])
+        glCallList(self.cozmobject.meshes["eyeLid_L_top_geo"])
+        glCallList(self.cozmobject.meshes["eyeLid_L_btm_geo"])
+        glCallList(self.cozmobject.meshes["eyeLid_R_btm_geo"])
         # Face cover (drawn last as it's translucent):
-        glCallList(self.cozmo_object.meshes["front_Screen_geo"])
+        glCallList(self.cozmobject.meshes["front_Screen_geo"])
         glPopMatrix()
 
         glDisable(GL_LIGHTING)
@@ -1356,8 +1356,8 @@ class OpenGLViewer():
 
         # Load 3D objects
 
-        _cozmo_obj = LoadedObjFile("cozmo.obj")
-        self.cozmo_object = RenderableObject(_cozmo_obj)
+        _cozmobj = LoadedObjFile("cozmo.obj")
+        self.cozmobject = RenderableObject(_cozmobj)
 
         # Load the cubes, reusing the same file geometry for all 3.
         _cube_obj = LoadedObjFile("cube.obj")

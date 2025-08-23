@@ -5,7 +5,8 @@ if [ "$(uname)" == "Darwin" ]; then
   brew install ffmpeg
   brew install portaudio
   # Create venv (requires python3.10 or later):
-  python3 -m venv ./venv_cozmini
+  brew install python@3.9
+  python3.9 -m venv ./venv_cozmini
   source ./venv_cozmini/bin/activate
   pip3 install -r requirements.txt
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then

@@ -1,8 +1,10 @@
 import cozmo_api
-import cozmo
+from cozmo_custom import cozmo
 from event_messages import event_log, EventType
 import user_voice_input
 import time
+import cv2
+from PIL import Image
 
 class CozmoAPIStubby(cozmo_api.CozmoAPI):
     """
@@ -12,12 +14,18 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
     parameter in the init method.
     """
 
-    def __init__(self, robot: cozmo.robot.Robot=None, voice_input=None, succeed=True):
+    def __init__(self, robot: cozmo.robot.Robot=None, user_input=None, succeed=True):
         self.succeed = succeed  # Flag to simulate success/failure
         self.robot = robot
-        self.voice_input = voice_input
+        self.user_input = user_input
         event_log.add_callback(self._event_calback)
         self.image = None
+        self.video_capture = cv2.VideoCapture(0)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 200)
+
+    def set_user_input(self, user_input):
+        self.user_input = user_input
 
     def _event_calback(self, event):
         event_type, event_message = event
@@ -44,7 +52,8 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A possibly imperfect, transcription of what the user said will be provided as system message.
         """
-        self.voice_input.capture_user_input()
+        if self.user_input:
+            self.user_input.capture_user_input()
         return ""
 
     def cozmo_says(self, text: str) -> str:
@@ -61,6 +70,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
             return f"succeeded."
         else:
             return "failed."
+        time.sleep(0.1*len(text))  # Simulate some delay for speaking
 
     def cozmo_drives(self, distance: float, speed: float) -> str:
         """
@@ -73,6 +83,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(0.1*(distance/speed))  # Simulate some delay for driving
         if self.succeed:
             return f"Cozmo drove {distance} mm at {speed} mmps."
         else:
@@ -88,6 +99,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(5)  # Simulate some delay for popping a wheelie
         if self.succeed:
             return "Cozmo has performed a wheel stand!"
         else:
@@ -103,6 +115,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(0.1*abs(angle))  # Simulate some delay for turning
         if self.succeed:
             return f"Cozmo turned {angle} degrees."
         else:
@@ -133,6 +146,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(0.1*abs(angle))  # Simulate some delay for head movement
         if self.succeed:
             return f"Cozmo's head is now at {angle} degrees."
         else:
@@ -161,6 +175,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result, e.g., "Cozmo played animation: [animation_name]"
         """
+        time.sleep(3)  # Simulate some delay for playing animation
         if self.succeed:
             return f"Cozmo played animation: {animation_name}"
         else:
@@ -179,6 +194,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result, e.g., "Cozmo played the song."
         """
+        time.sleep(0.25*len(song_notes))  # Simulate some delay for playing song
         if self.succeed:
             return "Cozmo played the song."
         else:
@@ -191,6 +207,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result (always finds a cube in this stub).
         """
+        time.sleep(5)  # Simulate some delay for searching
         if self.succeed:
             return "Found cube with ID: 1"
         else:
@@ -207,6 +224,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(0.1*(distance/100))  # Simulate some delay for driving
         if self.succeed:
             return f"Cozmo went to object {object_id}."
         else:
@@ -222,6 +240,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(3)  # Simulate some delay for picking up object
         if self.succeed:
             return f"Cozmo picked up object {object_id}."
         else:
@@ -237,6 +256,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result (always succeeds in this stub since carrying is not simulated).
         """
+        time.sleep(2)  # Simulate some delay for placing object
         if self.succeed:
             return f"Cozmo placed object {object_id}."
         else:
@@ -252,6 +272,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(3)  # Simulate some delay for docking
         if self.succeed:
             return f"Cozmo docked with cube {object_id}."
         else:
@@ -267,6 +288,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result.
         """
+        time.sleep(3)  # Simulate some delay for rolling
         if self.succeed:
             return f"Cozmo rolled cube {object_id}."
         else:
@@ -367,8 +389,8 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
             return "Cozmo is localized."
         else:
             return "Cozmo failed to check localization."
-        
-    def cozmo_sets_backpack_lights(self, R: int, G: int, B: int) -> str:
+
+    def cozmo_sets_backpack_lights(self, r: int, g: int, b: int) -> str:
         """
         Sets the color of Cozmo's backpack lights. Set all channels to 0 to turn them off.
 
@@ -381,7 +403,7 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
             A string indicating the result, e.g., "Cozmo's backpack lights set to (R, G, B)."
         """
         if self.succeed:
-            return f"Cozmo's backpack lights set to ({R}, {G}, {B})."
+            return f"Cozmo's backpack lights set to ({r}, {g}, {b})."
         else:
             return f"Failed."
         
@@ -425,18 +447,34 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating success or failure. A description of the image will be provided in the system messages.
         """
-        if self.succeed:
-            return "There is a green toy robot on the shelf."
+        self.image = self.get_image_from_camera()
+        if self.image:
+            return "an image was captured"
         else:
             return "Failed."
+
+    def get_image_from_camera(self):
+        if self.video_capture.isOpened():
+            ret, frame = self.video_capture.read()
+            if ret:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image = Image.fromarray(frame_rgb)
+
+        if not self.image:
+            # fallback to a default image
+            self.image = Image.open('assets/lightcube.png')
+
+        return self.image
+
 
 if __name__ == "__main__":
     def print_events(event):
         print(event)
 
     event_log.add_callback(print_events)
-    voice_input = user_voice_input.VoiceInput()
-    voice_input.start_voice_input_loop()
+    voice_input = user_voice_input.init_voice_input()
+    if not voice_input:
+        voice_input.start_voice_input_loop()
     robot_api = CozmoAPIStubby(None, voice_input)
     commands = (
         # 'cozmo_search_light_cube()',
@@ -464,8 +502,8 @@ if __name__ == "__main__":
         # 'cozmo_set_headlight("On")',
         # 'cozmo_set_volume(50)',
         # 'cozmo_pops_a_wheelie(1)',
-        'cozmo_listens()',
         # 'cozmo_set_backpack_lights(255, 0, 0)',
+        'cozmo_sees()',
     )
     results = robot_api.execute_commands("\n".join(commands))
     print(results)

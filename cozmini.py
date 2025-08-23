@@ -1,6 +1,6 @@
-import google.generativeai as genai
-from google.generativeai.types.generation_types import BlockedPromptException
-import cozmo
+from google import genai
+from google.genai import types
+from cozmo_custom import cozmo
 import cozmo_api
 import cozmo_api_stubby
 from datetime import datetime
@@ -10,37 +10,60 @@ from event_messages import event_log, EventType
 import traceback
 from collections import OrderedDict
 import time
+from io import BytesIO
+from collections import namedtuple
+
 
 _CHAT_MODE = True
 _API_PROMPT = 'API calls'
+_COZMO_TOOLS = types.Tool(function_declarations=cozmo_api.get_function_declarations())
+_GEMINI_MODEL = 'gemini-2.5-flash'
+ToolCall = namedtuple("ToolCalls", ["name", "args"])
 
-def generate_reply(models, context, prompt, model_log=None):
+def generate_response(model, prompt, image, context, model_log=None):
 
     if not _CHAT_MODE:
         prompt = context + prompt
 
-    output = ''
+    prompt_parts = [prompt]
+    if image:
+        prompt_parts.append(image)
+
     for retrie in range(5):
+        output = ''
+        tool_calls = []
+
         try:
             if _CHAT_MODE:
-                response = models['chat'].send_message(prompt)
+                response = model.send_message(prompt_parts)
             else:
-                response = models['text_model'].generate_content(prompt)
-                response.resolve()
+                response = model.generate_content(prompt_parts)
 
-            output = response.text
+            if not response.candidates[0].content or not response.candidates[0].content.parts:
+                continue
+
+            for part in response.candidates[0].content.parts:
+                if part.function_call:
+                    tool_calls.append(part.function_call)
+                if part.text:
+                    output += part.text
 
             if model_log:
-                model_log.write('\n======== PROMPT ========\n')
-                model_log.write("..." + prompt[-1000:])
-                model_log.write('\n======== OUTPUT ========\n')
-                model_log.write(response.text + '\n')
+                model_log.write("\n======== PROMPT ========\n")
+                if not _CHAT_MODE:
+                    model_log.write("...\n" + prompt[-1000:])
+                else:
+                    model_log.write("...\n" + context[-1000:] + prompt)
+
+                model_log.write("\n======== OUTPUT ========\n")
+                model_log.write(output + '\n')
+                model_log.write("Function calls: " + ', '.join(f"{call.name}({str(call.args)})" for call in tool_calls) + '\n')
                 model_log.flush()
 
-            return output
-        except BlockedPromptException as e:
-            print("AI response was blocked due to safety concerns. Please try a different input.")
-        
+            return output, tool_calls
+        except Exception as e:
+            print(f"Error generating response: {e}\nFull prompt: {prompt}")
+
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         
@@ -48,81 +71,15 @@ def generate_reply(models, context, prompt, model_log=None):
             print(f"Generation error: {e}\nTrying again in 15s: {retrie}/5.")
             time.sleep(15)
 
-    return output
-    
-def get_image_description(models, input_image, model_log=None):
-    image_description = ''
-    if input_image:
-        for retrie in range(4):
-            try:
-                image_prompt = "Anki Cozmo robot captured this image. Describe what cozmo sees in the image."
-                response = models['text_image_model'].generate_content([image_prompt, input_image], stream=False)
-                response.resolve()
-                image_description = response.text.strip()
+    return output, tool_calls
 
-                if model_log:
-                    model_log.write('\n======== IMAGE PROMPT ========\n')
-                    model_log.write(image_prompt+'\n')
-                    model_log.write('\n======== IMAGE OUTPUT ========\n')
-                    model_log.write(image_description)
-                    model_log.flush()
 
-                return image_description
-            except BlockedPromptException as e:
-                print("AI response was blocked due to safety concerns. Please try a different input.")
-        
-            except KeyboardInterrupt:
-                raise KeyboardInterrupt
-
-            except Exception as e: 
-                print(f"Generation error: {e}\nTrying again in 15s: {retrie}/5.")
-                time.sleep(15)
-
-    return image_description
-
-def filter_response(response):
-    commands = ''
-    for line in response.splitlines():
-        line = line.strip()
-        if line:
-            if not line.startswith((_API_PROMPT, 'cozmo_')):
-                event_log.message(EventType.API_RESULT, f'Got an invalid API call (Ignored): "{line}".\n')
-                break
-            elif line.startswith('cozmo_'):
-                commands += line.strip() + '\n'
-            elif line.startswith(_API_PROMPT):
-                commands += line[len(f"{_API_PROMPT}: "):].strip() + '\n'
-
-    return commands
-
-def process_response(response: str, robot_api: cozmo_api.CozmoAPI, user_input):
-    user_prompt = ''
-    system_messages = ''
-    commands = ''
-    for cmd in response.splitlines():
-        if cmd.startswith(_API_PROMPT):
-            commands += f'{cmd[len(f"{_API_PROMPT}: "):].strip()}\n'
-
-    if commands:
-        result = robot_api.execute_commands(commands)
-        user_prompt = ''
-        for line in result.splitlines():
-            if line.startswith('User says:'):
-                user_prompt += f'{line[len("User says:"):].strip()}\n'
-            else:
-                system_messages += f'{line}\n'
-
-    return user_prompt, system_messages
-
-def process_events(event_log, image_description=''):
+def process_events(event_log):
     global _system_messages
     events = event_log.pop_all_events()
     time = datetime.now().strftime("%H:%M:%S")
     context = ''
     stop = False
-
-    if image_description:
-        context = f'System message ({time}): Result of cozmo_sees(): {image_description}\n'
 
     _system_messages = set()
     for message_type, message in events:
@@ -133,88 +90,121 @@ def process_events(event_log, image_description=''):
             context += 'User says: ' + message + '\n'
         elif message_type == EventType.API_CALL:
             context += f'{_API_PROMPT}: {message}\n'
-        elif message_type == EventType.API_RESULT:
-                context += f'System message ({time}): {message}\n'
+        # elif message_type == EventType.API_RESULT:
+        #         context += f'System message ({time}): {message}\n'
         elif message_type == EventType.SYSTEM_MESSAGE and message not in _system_messages:
             context += f'System message ({time}): {message}\n'
             _system_messages.add(message)
 
     return context, stop
 
-def cozmo_program(robot: cozmo.robot.Robot):
-    voice_input = user_voice_input.VoiceInput()
+def format_tool_call(tool_call: dict) -> str:
+    tool_call_output = ""
+    if tool_call["success"]:
+        if tool_call["result"] is None:
+            tool_call_output = "succeeded"
+        else:
+            tool_call_output = str(tool_call["result"])
+    else:
+        tool_call_output = f"error: {str(tool_call['error'])}"
 
+    if tool_call["args"]:
+        args = ", ".join(f"{k}={str(v)}" for k, v in tool_call["args"].items())
+    else:
+        args = ""
+
+    return f"    {tool_call['function_name']}({args}) -> {tool_call_output}\n"
+
+def cozmo_program(robot: cozmo.robot.Robot):
     now = datetime.now().strftime("%d/%m/%Y")
     # event_log.message(EventType.SYSTEM_MESSAGE, "Today's date is: " + now)
-
-    if robot:
-        cozmo_robot_api = cozmo_api.CozmoAPI(robot, voice_input)
-        user_interface = user_ui.UserInterface(cozmo_robot_api.get_image_from_camera)
-    else:
-        cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby(None, voice_input)
-        user_interface = user_ui.UserInterface(None)
-
-    models = {
-        'text_model': genai.GenerativeModel('gemini-pro'),
-        # 'text_model': genai.GenerativeModel('gemini-1.5-pro-latest'),
-        'text_image_model': genai.GenerativeModel('gemini-pro-vision'),
-    }
 
     model_log = None
     model_log = open('user_data/model_log.txt', 'w')
 
-    prompt_instructions = ''
+    system_instructions = ''
     with open('cozmo_instructions.txt') as file:
-        prompt_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
+        system_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
 
     with open('user_data/conversation_history.txt', 'a+') as history:
         history.seek(0)
-        conversation_history = history.read()
+        # conversation_history = history.read()
+        conversation_history = ""
         # TODO: Use the LLM to summarize conversation history if it's too long
 
+        client = genai.Client()
         if _CHAT_MODE:
-            models['chat'] = models['text_model'].start_chat(history=[])
-            models['chat'].send_message(prompt_instructions)
-            # TODO: Add conversation history support to chat model
+            chat_model = client.chats.create(
+                model=_GEMINI_MODEL,
+                history=[],  # TODO: Add conversation history support to chat model
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instructions,
+                    tools=[_COZMO_TOOLS])
+            )
+        else:
+            chat_model = client.models.create(
+                model=_GEMINI_MODEL,
+                history=[],  # TODO: Add conversation history support to model
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instructions,
+                    tools=[_COZMO_TOOLS]
+                )
+            )
 
-        user_interface.start_ui_loop()
-        voice_input.start_voice_input_loop()
+        
+        if robot:
+            cozmo_robot_api = cozmo_api.CozmoAPI(robot)
+        else:
+            cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby()
+
+        user_interface = user_ui.UserInterface(cozmo_robot_api.get_image_from_camera)
+        user_input = user_voice_input.VoiceInput()
+        if not user_input:
+            user_input = user_interface
+
+        cozmo_robot_api.set_user_input(user_input)
+        user_interface.start_loop()
+        if user_input and user_input != user_interface:
+            user_input.start_loop()
+
         image = None
-        image_description = None
         while True:
-
-            voice_input.wait_listening_finish() # let user finish talikng to include their input
-            new_context, stop = process_events(event_log, image_description)
+            if user_input:
+                user_input.wait_input_finish() # let user finish talikng to include their input
+            event_context, stop = process_events(event_log)
             if stop:
                 break
 
-            context = prompt_instructions + conversation_history
-            prompt = new_context + f"{_API_PROMPT}: "
-            user_interface.output_messges(prompt)
+            new_prompt = event_context + f"{_API_PROMPT}:\n"
+            user_interface.output_messges(new_prompt)
+            history.write(new_prompt)
 
             print("Cozmo is thinking...")
             cozmo_robot_api.set_backpack_lights(cozmo.lights.white_light)
-            commands = filter_response(generate_reply(models, context, prompt, model_log=model_log))
-            user_interface.output_messges(commands)
+            response, tool_calls = generate_response(model=chat_model, prompt=new_prompt, image=image, context=conversation_history, model_log=model_log)
+            if response:
+                cozmo_says_tool_call = ToolCall(name="cozmo_says", args={"text": response})
+                tool_calls.insert(0, cozmo_says_tool_call)
 
-            remember = prompt + commands
-            conversation_history += remember
-            history.write(remember)
-            history.flush()
-
-            cozmo_robot_api.restore_backpack_lights()
+            results = []
             try:
-                _, image = cozmo_robot_api.execute_commands(commands)
-                if image:
-                    print("Cozmo is thinking about the image...")
-                    cozmo_robot_api.set_backpack_lights(cozmo.lights.white_light)
+                cozmo_robot_api.set_backpack_lights(cozmo.lights.red_light)
+                results, image = cozmo_robot_api.execute_tool_calls(tool_calls)
+                if image and hasattr(image, 'annotate_image'):
                     image = image.annotate_image()
-                    image_description = get_image_description(models, image, model_log)
-                    cozmo_robot_api.restore_backpack_lights()
-                else:
-                    image_description = None
             except Exception as e:
                 traceback.print_exc()
+            cozmo_robot_api.restore_backpack_lights()
+
+            result_context = ""
+            if results:
+                result_message = "".join(format_tool_call(result) for result in results)
+                result_context += result_message
+
+            conversation_history += new_prompt + result_context
+            user_interface.output_messges(result_context)
+            history.write(result_context)
+            history.flush()
 
         if model_log:
             model_log.close()

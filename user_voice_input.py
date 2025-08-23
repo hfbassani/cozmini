@@ -1,4 +1,4 @@
-import pvporcupine
+from pocketsphinx import Decoder, get_model_path, Config
 from google.cloud import speech, texttospeech
 import pyaudio
 import struct
@@ -7,32 +7,57 @@ from event_messages import event_log, EventType
 import threading
 import time
 
+def init_voice_input():
+    # Loading the access key and keyword path from environment variables
+    return VoiceInput()
+
 class VoiceInput:
 
     RECORD_TIME = 10
+
     def __init__(self):
         self.audio_stream = None
         self.pa = None
-        self.porcupine = None
+        self.rate = 16000
+        self.frame_length = 1024
+        self.wake_word = "hey cosmo"
 
-        # Loading the access key and keyword path from environment variables
-        self.access_key = os.environ.get('PICOVOICE_ACCESS_KEY')
-        self.keyword_path = os.environ.get('PICOVOICE_KEYWORD_PATH')
+        # --- PocketSphinx Configuration ---
+        
+        # Get paths in a portable way
+        model_path = get_model_path()
+        hmm_path = os.path.join(model_path, 'en-us', 'en-us')
+        dict_path = os.path.join(model_path, 'en-us', 'cmudict-en-us.dict')
 
-        # Creating a Porcupine instance
-        self.porcupine = pvporcupine.create(access_key=self.access_key, keyword_paths=[self.keyword_path])
+        # Create a configuration object for keyword spotting.
+        # This replaces Decoder.default_config() and avoids the conflict.
+        config = Config(
+            hmm = hmm_path,
+            dict = dict_path,
+            keyphrase = self.wake_word,
+            kws_threshold = 1e-20,
+            logfn = os.devnull  # Suppress verbose logging
+        )
 
-        # Initializing Google Cloud Speech-to-Text client
+        os.environ['KMP_WARNINGS'] = 'off'
+
+        # Initialize the decoder with the new configuration
+        self.decoder = Decoder(config)
+        self.decoder.start_utt()
+        print("✅ PocketSphinx decoder initialized successfully for keyword spotting.")
+
+
+        # --- Initializing Google Cloud Speech-to-Text client --- 
         self.speech_client = speech.SpeechClient()
 
         # Initializing PyAudio
         self.pa = pyaudio.PyAudio()
         self.audio_stream = self.pa.open(
-            rate=self.porcupine.sample_rate,
-            channels=1,
             format=pyaudio.paInt16,
+            frames_per_buffer=self.frame_length,
+            rate=self.rate,
+            channels=1,
             input=True,
-            frames_per_buffer=self.porcupine.frame_length
         )
 
         self.trigger_listen = False
@@ -72,7 +97,7 @@ class VoiceInput:
         else:
             return ''
 
-    def wait_listening_finish(self):
+    def wait_input_finish(self):
         while self.trigger_listen:
                 time.sleep(0.1)
 
@@ -80,37 +105,53 @@ class VoiceInput:
         self.trigger_listen = True
 
         if block:
-            self.wait_listening_finish()            
+            self.wait_input_finish()            
         return self.user_input
    
 
     def _listen(self):
 
         # Recording voice input and converting it to text
-        audio_data = self._record_audio(self.audio_stream, self.porcupine.sample_rate, self.porcupine.frame_length, VoiceInput.RECORD_TIME)
+        audio_data = self._record_audio(self.audio_stream, self.rate, self.frame_length, VoiceInput.RECORD_TIME)
         user_input = self._transcribe_audio(self.speech_client, audio_data)
 
         return user_input
 
-    def start_voice_input_loop(self):
+    def start_loop(self):
         threading.Thread(target=self.wait_keyword_loop, daemon=True).start()
+
+    def detect_wake_word(self, pcm):
+        # Process the raw audio data
+        self.decoder.process_raw(pcm, False, False)
+        
+        # Check if the wake word was hypothesized
+        if self.decoder.hyp() and self.decoder.hyp().hypstr == self.wake_word:
+            # Wake word detected
+            print("Wake word detected!")
+            
+            # End the current utterance and start a new one for the next listen cycle
+            self.decoder.end_utt()
+            self.decoder.start_utt()
+            
+            return True
+        return False
 
     def wait_keyword_loop(self):
         while True:
-            # Reading audio data from PyAudio stream
-            pcm = self.audio_stream.read(self.porcupine.frame_length, exception_on_overflow=False)
-            pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm)
-
-            # Detecting wake word using Porcupine
-            keyword_index = self.porcupine.process(pcm)
-            if keyword_index >= 0:  # If wake word is detected
+            # Reading raw audio data from PyAudio stream
+            pcm = self.audio_stream.read(self.frame_length, exception_on_overflow=False)
+            
+            if self.detect_wake_word(pcm):
                 self.trigger_listen = True
                 self.user_input = self._listen()
                 if self.user_input:
+                    # Note: You might want to remove the hardcoded "Hey, Cozmo" here
+                    # since it was already detected as the wake word.
                     self.user_input = "Hey, Cozmo. " + self.user_input
                     event_log.message(EventType.USER_MESSAGE, self.user_input)
                 self.trigger_listen = False
 
+            # Otherwise, if listen was triggered externally
             elif self.trigger_listen:
                 self.user_input = self._listen()
                 if self.user_input:
@@ -123,5 +164,3 @@ class VoiceInput:
             self.audio_stream.close()
         if self.pa:
             self.pa.terminate()
-        if self.porcupine:
-            self.porcupine.delete()

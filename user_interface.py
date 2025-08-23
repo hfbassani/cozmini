@@ -18,11 +18,13 @@ class UserInterface():
     def __init__(self, get_image=None):
         self.new_user_input_provided = False
         self.user_says = ''
+        self.current_input = ''
         self.history = ''
         self.get_image = get_image
 
         _flask_app.add_url_rule('/', view_func=self.handle_index_page, methods=['GET'])
         _flask_app.add_url_rule('/handle_input', view_func=self.handle_input, methods=['POST'])
+        _flask_app.add_url_rule('/handle_partial_input', view_func=self.handle_partial_input, methods=['POST'])
         _flask_app.add_url_rule('/get_history', view_func=self.get_history, methods=['GET'])
         _flask_app.add_url_rule('/cozmoImage', view_func=self.handle_cozmoImage, methods=['GET'])
 
@@ -39,7 +41,7 @@ class UserInterface():
             <p>Say something to Cozmo</p>
 
             <form method="post" action="{{ url_for('handle_input') }}">
-                <input id='input_box' type="text" name="user_says" value=""></input> <button type="submit">Say it</button>
+                <input id='input_box' type="text" onchange="handleChange()" name="user_says" value=""></input> <button type="submit">Say it</button>
             </form>
 
             <script>
@@ -56,33 +58,56 @@ class UserInterface():
                     });
                     document.getElementById("cozmoImageId").src="cozmoImage?" + (new Date()).getTime();
                 }, 250);
-            </script>
-        <html>
-        '''
- 
+
+                function handleChange() {
+                    const inputValue = document.getElementById('input_box').value;
+                    $.ajax({
+                        url:"{{ url_for('handle_partial_input') }}",
+                        method:"POST",
+                        data: {
+                            current_input: inputValue
+                        }
+                    });
+                }
+        </script>
+    </html>
+    '''
+
     def handle_index_page(self):
         return render_template_string(self.input_page, history=self.history)
 
     def handle_input(self):
         if request.method == 'POST':
             self.user_says = request.form['user_says']
+            self.current_input = ''
             if self.user_says:
                 event_log.message(EventType.USER_MESSAGE, self.user_says)                
                 self.new_user_input_provided = True
 
         return render_template_string(self.input_page, user_says='', history=self.history)
 
+    def handle_partial_input(self):
+        if request.method == 'POST':
+            self.current_input = request.form.get('current_input', '')
+
+        return render_template_string(self.input_page, user_says='', history=self.history)
+
     def get_history(self):
         return self.history
-        
+
     def output_messges(self, messages):
         self.history += messages
 
     def capture_user_input(self):
         self.new_user_input_provided = False
+        self.history += "Cozmo is listening..."
         while not self.new_user_input_provided:
             sleep(0.05)
         return self.user_says
+
+    def wait_input_finish(self):
+        if self.current_input and self.new_user_input_provided:
+            self.capture_user_input()
 
     def handle_cozmoImage(self):
         '''Convert PIL image to a image file and send it'''
@@ -90,7 +115,8 @@ class UserInterface():
             try:
                 image = self.get_image()
                 if image:
-                    image = image.annotate_image(scale=2)
+                    if hasattr(image, 'annotate_image'):
+                        image = image.annotate_image(scale=2)
                     img_io = BytesIO()
                     image.save(img_io, 'PNG')
                     img_io.seek(0)
@@ -109,7 +135,7 @@ class UserInterface():
         response.headers['Expires'] = '0'
         return response
 
-    def start_ui_loop(self):
+    def start_loop(self):
         threading.Thread(target=lambda: self.run_flask(_flask_app), daemon=True).start()
     
     def run_flask(self, flask_app, host_ip="127.0.0.1", host_port=5000, open_page_delay=1.0):

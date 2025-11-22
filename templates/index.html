@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozmo Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Cozmo Control Center</h1>
+            <div class="header-controls">
+                <button id="bye-btn" class="danger-btn">Bye</button>
+                <div class="status-indicator">
+                    <span class="dot"></span> <span id="status-text">Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="video-section">
+                <div class="video-container">
+                    <img src="{{ url_for('handle_cozmoImage') }}" id="cozmoImageId" alt="Cozmo View">
+                    <div class="overlay">LIVE FEED</div>
+                </div>
+            </div>
+
+            <div class="resize-handle" id="resize-handle"></div>
+
+            <div class="chat-section">
+                <div id="history" class="chat-history">
+                    <!-- Chat messages will be inserted here via JS -->
+                    {{ history | safe }}
+                </div>
+
+                <div class="input-area">
+                    <form id="chat-form" onsubmit="return false;">
+                        <input type="text" id="input_box" name="user_says" placeholder="Type a message to Cozmo..."
+                            autocomplete="off">
+                        <button type="submit" id="send-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const getHistoryUrl = "{{ url_for('get_history') }}";
+        const handleInputUrl = "{{ url_for('handle_input') }}";
+        const handlePartialInputUrl = "{{ url_for('handle_partial_input') }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v={{ range(1, 10000) | random }}"></script>
+</body>
+
+</html>

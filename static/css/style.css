@@ -1,0 +1,339 @@
+:root {
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --primary-color: #bb86fc;
+    --secondary-color: #03dac6;
+    --text-color: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #333;
+    --input-bg: #2c2c2c;
+    --chat-user-bg: #3700b3;
+    --chat-cozmo-bg: #2c2c2c;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    letter-spacing: -0.5px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+}
+
+.danger-btn {
+    background-color: transparent;
+    border: 1px solid #ff5252;
+    color: #ff5252;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.danger-btn:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.danger-btn {
+    background-color: transparent;
+    border: 1px solid #ff5252;
+    color: #ff5252;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.danger-btn:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--secondary-color);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--secondary-color);
+}
+
+.status-indicator.disconnected {
+    color: #ff5252;
+}
+
+.status-indicator.disconnecting {
+    color: #ff9800;
+}
+
+.dot.disconnected {
+    background-color: #ff5252;
+    box-shadow: 0 0 8px #ff5252;
+}
+
+.dot.disconnecting {
+    background-color: #ff9800;
+    box-shadow: 0 0 8px #ff9800;
+}
+
+main {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    min-height: 0;
+    /* Important for flex scrolling */
+}
+
+.video-section {
+    flex: 1.5;
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.video-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+#cozmoImageId {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ff5252;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.overlay::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    background-color: #ff5252;
+    border-radius: 50%;
+}
+
+.chat-section {
+    flex: 1;
+    min-width: 600px;
+    /* Wider default */
+    max-width: 1200px;
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+
+    /* Resizable properties handled by JS now */
+    /* resize: horizontal; */
+    overflow: hidden;
+    /* direction: rtl; */
+    /* Place resize handle on the left */
+}
+
+.resize-handle {
+    width: 8px;
+    cursor: col-resize;
+    background-color: var(--surface-color);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+    background-color: var(--primary-color);
+}
+
+.resize-handle::after {
+    content: '⋮';
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.chat-history,
+.input-area {
+    direction: ltr;
+    /* Reset direction for content */
+    text-align: left;
+}
+
+
+/* Fix direction for content inside resizable container if we messed with it, 
+   but since we didn't change direction, just ensuring children behave. */
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-family: 'Inter', monospace;
+    /* Monospace for logs */
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    /* Preserve whitespace from logs */
+}
+
+/* Custom Scrollbar */
+.chat-history::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+.input-area {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+#chat-form {
+    display: flex;
+    gap: 10px;
+}
+
+#input_box {
+    flex: 1;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#input_box:focus {
+    border-color: var(--primary-color);
+}
+
+#send-btn {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #000;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+#send-btn:hover {
+    opacity: 0.9;
+}
+
+#send-btn:active {
+    transform: scale(0.95);
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    main {
+        flex-direction: column;
+    }
+
+    .video-section {
+        min-height: 300px;
+    }
+
+    .chat-section {
+        flex: 1;
+        min-height: 300px;
+    }
+}

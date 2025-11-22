@@ -29,7 +29,9 @@ cozmo_plays_animation(animation_name=anim_fistbump_success_02)
 [EXAMPLE INTERACTION START]
 API calls:
     cozmo_says(text="Hello!") -> succeeded.
+    cozmo_listens() -> cozmo started listening
 User says: Hi, cozmo!
+System message (21:56:30): Cozmo stopped listening.
 API calls:
     cozmo_says(text="I'm going to pick up a cube") -> succeeded.
     cozmo_searches_light_cube() -> Found cube with ID: 1

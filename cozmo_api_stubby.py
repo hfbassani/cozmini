@@ -44,7 +44,11 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         """
         if self.user_input:
             self.user_input.capture_user_input()
-        return ""
+            if self.succeed:
+                return "cozmo started listening"
+            else:
+                return "error"
+        return "error"
 
     def cozmo_says(self, text: str) -> str:
         """

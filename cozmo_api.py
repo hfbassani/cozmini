@@ -117,7 +117,8 @@ class CozmoAPI(CozmoAPIBase):
         """
         if self.user_input:
             self.user_input.capture_user_input(block=False)
-        return ''
+            return 'cozmo started listening'
+        return 'error'
 
     def cozmo_says(self, text: str) -> str:
         """

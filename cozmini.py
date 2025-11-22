@@ -87,13 +87,13 @@ def handle_event(event):
         if _cozmo_robot_api:
             _cozmo_robot_api.set_backpack_lights(cozmo.lights.green_light)
         if _user_interface:
-            _user_interface.output_messges("Cozmo is listening...")
+            _user_interface.output_messges("Cozmo is listening...\n")
         print("Cozmo is listening...")
     elif message_type == EventType.VOICE_EVENT_FINISHED:
         if _cozmo_robot_api:
             _cozmo_robot_api.restore_backpack_lights()
         if _user_interface:
-            _user_interface.output_messges("Cozmo has stopped listening.")
+            _user_interface.output_messges("Cozmo has stopped listening.\n")
         print("Cozmo has stopped listening.")
     elif message_type == EventType.USER_MESSAGE:
         # Handle user messages
@@ -126,6 +126,8 @@ def process_events(event_log):
         elif message_type == EventType.SYSTEM_MESSAGE and message not in _system_messages:
             context += f'System message ({time}): {message}\n'
             _system_messages.add(message)
+        elif message_type == EventType.VOICE_EVENT_FINISHED:
+             context += f'System message ({time}): Cozmo stopped listening.\n'
 
     return context, stop
 
@@ -245,9 +247,10 @@ def cozmo_program(robot: cozmo.robot.Robot):
         if model_log:
             model_log.close()
 
-try:
-    cozmo.run_program(cozmo_program, exit_on_connection_error=False)
-except Exception as e:
-    traceback.print_exc()
-    print('#### Robot not found. Using text mode! ###')
-    cozmo_program(None)
+if __name__ == "__main__":
+    try:
+        cozmo.run_program(cozmo_program, exit_on_connection_error=False)
+    except Exception as e:
+        traceback.print_exc()
+        print('#### Robot not found. Using text mode! ###')
+        cozmo_program(None)

@@ -1,16 +1,22 @@
 from event_messages import event_log, EventType
-from flask import Flask, request, render_template_string, make_response, send_file
+from flask import Flask, request, render_template, make_response, send_file, url_for
 from io import BytesIO
 import threading
 import webbrowser
 from time import sleep
 import logging
 import traceback
+import os
 
 _log = logging.getLogger('werkzeug')
 _log.setLevel(logging.ERROR)
 
-_flask_app = Flask(__name__)
+# Ensure Flask knows where to find templates and static files
+project_root = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.join(project_root, 'templates')
+static_dir = os.path.join(project_root, 'static')
+
+_flask_app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 _flask_app.debug = False
 
 class UserInterface():
@@ -28,53 +34,8 @@ class UserInterface():
         _flask_app.add_url_rule('/get_history', view_func=self.get_history, methods=['GET'])
         _flask_app.add_url_rule('/cozmoImage', view_func=self.handle_cozmoImage, methods=['GET'])
 
-        self.input_page = '''
-        <html>
-            <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-            <img src="cozmoImage" id="cozmoImageId" width=640 height=480>
-            <textarea
-                    id="history"
-                    name="history"
-                    rows="15"
-                    cols="180"
-                    >{{ history }}</textarea>        
-            <p>Say something to Cozmo</p>
-
-            <form method="post" action="{{ url_for('handle_input') }}">
-                <input id='input_box' type="text" onchange="handleChange()" name="user_says" value=""></input> <button type="submit">Say it</button>
-            </form>
-
-            <script>
-                $("#input_box").focus();
-                setInterval(function(){
-                        $.ajax({
-                        url:"{{ url_for('get_history') }}",
-                        method:"GET",
-                        success:function(data){
-                            var $textarea = $("#history");
-                            $textarea.val(data);
-                            $textarea.scrollTop($textarea[0].scrollHeight);
-                        }
-                    });
-                    document.getElementById("cozmoImageId").src="cozmoImage?" + (new Date()).getTime();
-                }, 250);
-
-                function handleChange() {
-                    const inputValue = document.getElementById('input_box').value;
-                    $.ajax({
-                        url:"{{ url_for('handle_partial_input') }}",
-                        method:"POST",
-                        data: {
-                            current_input: inputValue
-                        }
-                    });
-                }
-        </script>
-    </html>
-    '''
-
     def handle_index_page(self):
-        return render_template_string(self.input_page, history=self.history)
+        return render_template('index.html', history=self.history)
 
     def handle_input(self):
         if request.method == 'POST':
@@ -84,13 +45,13 @@ class UserInterface():
                 event_log.message(EventType.USER_MESSAGE, self.user_says)                
                 self.new_user_input_provided = True
 
-        return render_template_string(self.input_page, user_says='', history=self.history)
+        return "OK" # AJAX request doesn't need full page reload
 
     def handle_partial_input(self):
         if request.method == 'POST':
             self.current_input = request.form.get('current_input', '')
 
-        return render_template_string(self.input_page, user_says='', history=self.history)
+        return "OK"
 
     def get_history(self):
         return self.history
@@ -123,8 +84,9 @@ class UserInterface():
                     return self.make_uncached_response(send_file(img_io, mimetype='image/png', etag=False))
             except Exception as e:
                 traceback.print_exc()
-
-        return render_template_string(self.input_page, user_says='', history=self.history)
+        
+        # Return a placeholder or empty response if no image
+        return ""
 
     def make_uncached_response(self, in_file):
         response = make_response(in_file)

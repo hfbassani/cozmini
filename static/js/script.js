@@ -167,7 +167,7 @@ $(document).ready(function () {
         });
 
         // Update image with cache busting
-        $cozmoImage.attr("src", "cozmoImage?" + (new Date()).getTime());
+        $cozmoImage.attr("src", "cozmoImage");
     }, 250);
 
     // Handle input changes (partial input)

@@ -1,4 +1,4 @@
-# /bin/sh
+#!/bin/sh
 
 if [[ "$VIRTUAL_ENV" == "" ]]; then
     echo "Activating virtual environment"
@@ -6,4 +6,5 @@ if [[ "$VIRTUAL_ENV" == "" ]]; then
 fi
 source setup/set_env.sh
 source keys/env_keys.sh 
-python3 cozmini.py
+# Pass all arguments to cozmini.py (e.g., --no-memory)
+python3 cozmini.py "$@"

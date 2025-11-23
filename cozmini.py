@@ -12,12 +12,15 @@ from collections import OrderedDict
 import time
 from io import BytesIO
 from collections import namedtuple
+import argparse
 
 
 _CHAT_MODE = True
 _API_PROMPT = 'API calls'
 _COZMO_TOOLS = types.Tool(function_declarations=cozmo_api.get_function_declarations())
 _GEMINI_MODEL = 'gemini-2.5-flash'
+_MEMORY_MODEL = 'gemini-2.5-pro'
+_CONVERSATION_HISTORY_FILE = 'user_data/robot_memory/conversation_history.txt'
 ToolCall = namedtuple("ToolCalls", ["name", "args"])
 
 # APIs:
@@ -150,7 +153,117 @@ def format_tool_call(tool_call: dict) -> str:
     return f"    {tool_call['function_name']}({args}) -> {tool_call_output}\n"
 
 
-def cozmo_program(robot: cozmo.robot.Robot):
+def consolidate_memory():
+    """
+    Consolidate conversation history into long-term memory using LLM.
+    
+    Returns:
+        str: The memory content (new or existing)
+    """
+    memory_file = 'user_data/robot_memory/memory.txt'
+    prompt_file = 'memory_prompt.txt'
+    consolidation_error_file = 'user_data/robot_memory/consolidation_error.txt'
+    
+    # Generate timestamped backup filename
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
+    backup_file = f'user_data/robot_memory/memory_{timestamp}.txt'
+    
+    # Read previous memory
+    previous_memory = ""
+    try:
+        with open(memory_file, 'r') as f:
+            previous_memory = f.read().strip()
+    except FileNotFoundError:
+        print("No existing memory file found. Starting with empty memory.")
+    
+    # Read conversation history
+    session_log = ""
+    try:
+        with open(_CONVERSATION_HISTORY_FILE, 'r') as f:
+            session_log = f.read().strip()
+    except FileNotFoundError:
+        print("No conversation history found. Skipping memory consolidation.")
+        return previous_memory
+    
+    # Skip if no conversation history
+    if not session_log:
+        print("Conversation history is empty. Skipping memory consolidation.")
+        return previous_memory
+    
+    print("Consolidating memory from conversation history...")
+
+    # Read prompt template
+    try:
+        with open(prompt_file, 'r') as f:
+            prompt_template = f.read()
+    except FileNotFoundError:
+        print(f"Error: {prompt_file} not found. Cannot consolidate memory.")
+        with open(consolidation_error_file, 'w') as f:
+            f.write(f"Consolidation of session {timestamp} failed: prompt file {prompt_file} not found.")
+        return previous_memory
+    
+    # Format the prompt
+    prompt = prompt_template.replace('{PREVIOUS_MEMORY}', previous_memory if previous_memory else '(No previous memory)')
+    prompt = prompt.replace('{SESSION_LOG}', session_log)
+    
+    # Call LLM for summarization
+    try:
+        client = genai.Client()
+        model = client.models.generate_content(
+            model=_MEMORY_MODEL,
+            contents=prompt
+        )
+        
+        new_memory = ""
+        if model.candidates and model.candidates[0].content and model.candidates[0].content.parts:
+            for part in model.candidates[0].content.parts:
+                if part.text:
+                    new_memory += part.text
+        
+        new_memory = new_memory.strip()
+        
+        # Validate new memory (must be > 50% of old memory size to avoid corruption)
+        min_size = len(previous_memory) * 0.5
+        if len(new_memory) < min_size and previous_memory:
+            print(f"Warning: New memory size ({len(new_memory)}) is less than 50% of old memory ({len(previous_memory)}). Keeping old memory.")
+            with open(consolidation_error_file, 'w') as f:
+                f.write(f"Consolidation of session {timestamp} failed: New memory size is less than 50% of old memory. Keeping old memory.")
+                f.write(new_memory + "\n\n")
+            return previous_memory
+        
+        if not new_memory:
+            print("Warning: Generated memory is empty. Keeping old memory.")
+            return previous_memory
+
+        print(f"Memory consolidation successful. New memory size: {len(new_memory)} chars")
+        
+        # Backup old memory
+        if previous_memory:
+            try:
+                with open(backup_file, 'w') as f:
+                    f.write(previous_memory)
+            except Exception as e:
+                print(f"Warning: Could not backup memory: {e}")
+
+        # Write new memory
+        with open(memory_file, 'w') as f:
+            f.write(new_memory)
+        
+        # Clear conversation history
+        with open(_CONVERSATION_HISTORY_FILE, 'w') as f:
+            f.write('')
+        
+        return new_memory
+        
+    except Exception as e:
+        print(f"Error during memory consolidation: {e}")
+        traceback.print_exc()
+        with open(consolidation_error_file, 'w') as f:
+            f.write(f"Consolidation of session {timestamp} failed: {e}")
+        return previous_memory
+
+
+def cozmo_program(robot: cozmo.robot.Robot, skip_memory=False):
     global _cozmo_robot_api, _user_interface, _user_input
 
     event_log.add_callback(handle_event)
@@ -161,15 +274,26 @@ def cozmo_program(robot: cozmo.robot.Robot):
     model_log = None
     model_log = open('user_data/model_log.txt', 'w')
 
+    # Consolidate memory from previous session
+    if skip_memory:
+        print("Skipping memory consolidation (--no-memory flag set)")
+        memory_content = ""
+        try:
+            with open('user_data/robot_memory/memory.txt', 'r') as f:
+                memory_content = f.read().strip()
+        except FileNotFoundError:
+            print("No existing memory file found.")
+    else:
+        memory_content = consolidate_memory()
+
     system_instructions = ''
     with open('cozmo_instructions.txt') as file:
-        system_instructions = file.read().replace('{API DEFINITION}', cozmo_api.get_api_description())
+        system_instructions = file.read()
+        system_instructions = system_instructions.replace('{API_DEFINITION}', cozmo_api.get_api_description())
+        system_instructions = system_instructions.replace('{MEMORY_FILE_INSERTED_HERE}', memory_content if memory_content else '(No memory yet)')
 
-    with open('user_data/conversation_history.txt', 'a+') as history:
-        history.seek(0)
-        # conversation_history = history.read()
+    with open(_CONVERSATION_HISTORY_FILE, 'a') as history:
         conversation_history = ""
-        # TODO: Use the LLM to summarize conversation history if it's too long
 
         client = genai.Client()
         if _CHAT_MODE:
@@ -248,9 +372,16 @@ def cozmo_program(robot: cozmo.robot.Robot):
             model_log.close()
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Cozmo Robot Control System')
+    parser.add_argument('--no-memory', action='store_true', 
+                        help='Skip memory consolidation at startup')
+    args = parser.parse_args()
+    
     try:
-        cozmo.run_program(cozmo_program, exit_on_connection_error=False)
+        cozmo.run_program(lambda robot: cozmo_program(robot, skip_memory=args.no_memory), 
+                         exit_on_connection_error=False)
     except Exception as e:
         traceback.print_exc()
         print('#### Robot not found. Using text mode! ###')
-        cozmo_program(None)
+        cozmo_program(None, skip_memory=args.no_memory)

@@ -7,6 +7,9 @@ $(document).ready(function () {
     const $videoSection = $(".video-section");
     const $chatSection = $(".chat-section");
 
+    // Tab management
+    let activeTab = localStorage.getItem('cozmo-active-tab') || 'conversation';
+
     // Resize Logic
     let isResizing = false;
 
@@ -55,13 +58,45 @@ $(document).ready(function () {
     // Focus input on load
     $inputBox.focus();
 
+    // Tab switching functionality
+    function switchTab(tabName) {
+        activeTab = tabName;
+        localStorage.setItem('cozmo-active-tab', tabName);
+
+        // Update tab buttons
+        $('.tab-btn').removeClass('active');
+        $(`.tab-btn[data-tab="${tabName}"]`).addClass('active');
+
+        // Filter messages
+        if (tabName === 'conversation') {
+            // Show only conversation messages (user and Cozmo)
+            $('.msg[data-type="conversation"]').show();
+            $('.msg[data-type="debug"]').hide();
+            $('.api-call, .api-call-error').hide();
+        } else {
+            // Show everything in debug mode
+            $('.msg').show();
+            $('.api-call, .api-call-error').show();
+        }
+    }
+
+    // Initialize tab state
+    switchTab(activeTab);
+
+    // Tab click handlers
+    $('.tab-btn').on('click', function () {
+        const tabName = $(this).data('tab');
+        switchTab(tabName);
+    });
+
     // Poll for history updates
     setInterval(function () {
         $.ajax({
             url: getHistoryUrl,
             method: "GET",
             success: function (data) {
-                const $statusIndicator = $('.status-indicator');
+                const $statusIndicator = $('.status-indicator').first();
+                const $listeningIndicator = $('#listening-indicator');
 
                 // Only restore to connected if we were disconnected (not disconnecting)
                 if ($statusIndicator.hasClass('disconnected')) {
@@ -71,6 +106,30 @@ $(document).ready(function () {
                     $('#status-text').text('Connected');
                 }
 
+                // Parse history to determine listening state
+                const $temp = $('<div>').html(data);
+                let isListening = false;
+                const $children = $temp.children();
+
+                // Iterate backwards to find the latest relevant event
+                for (let i = $children.length - 1; i >= 0; i--) {
+                    const text = $($children[i]).text();
+                    if (text.includes('cozmo_listens') && text.includes('cozmo started listening')) {
+                        isListening = true;
+                        break;
+                    }
+                    if (text.includes('Cozmo stopped listening')) {
+                        isListening = false;
+                        break;
+                    }
+                }
+
+                if (isListening) {
+                    $listeningIndicator.removeClass('hidden');
+                } else {
+                    $listeningIndicator.addClass('hidden');
+                }
+
                 // Only update if content changed to avoid flickering/unnecessary DOM updates
                 // Note: Simple check, can be optimized
                 if ($history.html() !== data) {
@@ -78,6 +137,9 @@ $(document).ready(function () {
                     const isAtBottom = $history.scrollTop() + $history.innerHeight() >= $history[0].scrollHeight - 10;
 
                     $history.html(data);
+
+                    // Reapply tab filter
+                    switchTab(activeTab);
 
                     // Auto-scroll only if we were already at the bottom
                     if (isAtBottom) {
@@ -142,7 +204,7 @@ $(document).ready(function () {
     });
     // Handle Bye button
     $("#bye-btn").on('click', function () {
-        if (confirm("Are you sure you want to disconnect?")) {
+        if (confirm("Are you sure you want to stop Cozmo?")) {
             $.ajax({
                 url: handleInputUrl,
                 method: "POST",

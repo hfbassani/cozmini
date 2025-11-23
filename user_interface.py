@@ -57,7 +57,127 @@ class UserInterface():
         return self.history
 
     def output_messges(self, messages):
-        self.history += messages
+        """Enhanced message formatting with icons, colors, and structure"""
+        formatted = self._format_messages(messages)
+        self.history += formatted
+    
+    def _format_messages(self, messages):
+        """Parse and format messages with icons and color coding"""
+        if not messages:
+            return ""
+        
+        lines = messages.strip().split('\n')
+        formatted_html = []
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            if not line:
+                i += 1
+                continue
+            
+            # User messages
+            if line.startswith('User says:'):
+                user_text = line.replace('User says:', '').strip()
+                formatted_html.append(
+                    f'<div class="msg msg-user" data-type="conversation">'
+                    f'<span class="msg-icon">👤</span>'
+                    f'<span class="msg-content"><strong>You:</strong> {user_text}</span>'
+                    f'</div>'
+                )
+            
+            # System messages (listening, etc.)
+            elif 'is listening' in line.lower() or 'stopped listening' in line.lower():
+                icon = '👂' if 'listening' in line.lower() and 'stopped' not in line.lower() else '🔇'
+                formatted_html.append(
+                    f'<div class="msg msg-system" data-type="debug">'
+                    f'<span class="msg-icon">{icon}</span>'
+                    f'<span class="msg-content">{line}</span>'
+                    f'</div>'
+                )
+            
+            # System messages
+            elif line.startswith('System message'):
+                formatted_html.append(
+                    f'<div class="msg msg-system" data-type="debug">'
+                    f'<span class="msg-icon">⚙️</span>'
+                    f'<span class="msg-content">{line}</span>'
+                    f'</div>'
+                )
+            
+            # "API calls:" header - skip it, we only show the actual API call results
+            elif line.startswith('API calls:'):
+                # Just skip this line, don't display the header
+                pass
+            
+            # Standalone API call result line (has function call pattern with ->)
+            # Note: lines are already stripped, so we can't check for leading spaces
+            elif '(' in line and ')' in line and '->' in line and not line.startswith('User says:') and not line.startswith('System message') and not line.startswith('API calls:'):
+                api_call = line
+                is_speech = 'cozmo_says' in api_call
+                is_error = '-> error:' in api_call or 'Failed' in api_call
+                
+                if is_speech and not is_error:
+                    # Parse cozmo_says(text=...) -> ...
+                    import re
+                    # Match text value until the result indicator
+                    match = re.search(r'cozmo_says\(text=(.*?)\)\s*->', api_call)
+                    if match:
+                        speech_text = match.group(1).strip('"\'')  # Remove quotes if present
+                        # Add Cozmo message for conversation view
+                        formatted_html.append(
+                            f'<div class="msg msg-cozmo" data-type="conversation">'
+                            f'<span class="msg-icon">🤖</span>'
+                            f'<span class="msg-content"><strong>Cozmo:</strong> {speech_text}</span>'
+                            f'</div>'
+                        )
+                
+                # Also add to debug view as a standalone API call
+                icon = self._get_api_icon(api_call)
+                css_class = 'api-call-error' if is_error else 'api-call'
+                formatted_html.append(
+                    f'<div class="{css_class}">'
+                    f'<span class="api-icon">{icon}</span>'
+                    f'<span class="api-text">{api_call}</span>'
+                    f'</div>'
+                )
+            
+            else:
+                # Unknown message type - treat as system
+                formatted_html.append(
+                    f'<div class="msg msg-system" data-type="debug">'
+                    f'<span class="msg-icon">ℹ️</span>'
+                    f'<span class="msg-content">{line}</span>'
+                    f'</div>'
+                )
+            
+            i += 1
+        
+        return '\n'.join(formatted_html)
+    
+    def _get_api_icon(self, api_call):
+        """Return appropriate icon for API call"""
+        if 'cozmo_sees' in api_call:
+            return '👁️'
+        elif 'cozmo_says' in api_call:
+            return '💬'
+        elif 'cozmo_listens' in api_call:
+            return '👂'
+        elif 'cozmo_drives' in api_call:
+            return '➡️'
+        elif 'cozmo_turns' in api_call:
+            return '🔄'
+        elif 'cozmo_head' in api_call:
+            return '⬆️'
+        elif 'cube' in api_call.lower():
+            return '🎲'
+        elif 'animation' in api_call.lower():
+            return '🎭'
+        elif 'error' in api_call.lower():
+            return '❌'
+        else:
+            return '⚡'
 
     def capture_user_input(self):
         self.new_user_input_provided = False
@@ -100,7 +220,7 @@ class UserInterface():
     def start_loop(self):
         threading.Thread(target=lambda: self.run_flask(_flask_app), daemon=True).start()
     
-    def run_flask(self, flask_app, host_ip="127.0.0.1", host_port=5000, open_page_delay=1.0):
+    def run_flask(self, flask_app, host_ip="127.0.0.1", host_port=5001, open_page_delay=1.0):
         '''
         Run the Flask webserver on specified host and port
         optionally also open that same host:port page in your browser to connect

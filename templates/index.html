@@ -15,7 +15,7 @@
         <header>
             <h1>Cozmo Control Center</h1>
             <div class="header-controls">
-                <button id="bye-btn" class="danger-btn">Bye</button>
+                <button id="bye-btn" class="danger-btn">Freeze All Motor Functions</button>
                 <div class="status-indicator">
                     <span class="dot"></span> <span id="status-text">Connected</span>
                 </div>
@@ -33,9 +33,17 @@
             <div class="resize-handle" id="resize-handle"></div>
 
             <div class="chat-section">
+                <div class="tab-switcher">
+                    <button class="tab-btn active" data-tab="conversation">💬 Conversation</button>
+                    <button class="tab-btn" data-tab="debug">🔧 Debug Log</button>
+                </div>
                 <div id="history" class="chat-history">
                     <!-- Chat messages will be inserted here via JS -->
                     {{ history | safe }}
+                </div>
+
+                <div id="listening-indicator" class="listening-bar hidden">
+                    <span class="dot listening"></span> <span id="listening-text">Cozmo is listening...</span>
                 </div>
 
                 <div class="input-area">

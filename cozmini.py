@@ -89,14 +89,14 @@ def handle_event(event):
     if message_type == EventType.VOICE_EVENT_LISTENING:
         if _cozmo_robot_api:
             _cozmo_robot_api.set_backpack_lights(cozmo.lights.green_light)
-        if _user_interface:
-            _user_interface.output_messges("Cozmo is listening...\n")
+        # if _user_interface:
+        #     _user_interface.output_messges("Cozmo is listening...\n")
         print("Cozmo is listening...")
     elif message_type == EventType.VOICE_EVENT_FINISHED:
         if _cozmo_robot_api:
             _cozmo_robot_api.restore_backpack_lights()
-        if _user_interface:
-            _user_interface.output_messges("Cozmo has stopped listening.\n")
+        # if _user_interface:
+        #     _user_interface.output_messges("Cozmo has stopped listening.\n")
         print("Cozmo has stopped listening.")
     elif message_type == EventType.USER_MESSAGE:
         # Handle user messages

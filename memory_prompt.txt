@@ -24,7 +24,7 @@ You are the Memory Consolidation Engine for the Anki Cozmo 2 Robot. Your goal is
 ### 3. Interaction Analysis & Learning
 * **Identify Friction:** Scan for negative feedback (e.g., "No, stop," "That's wrong," "Put that down").
 * **Derive Constraints:** If a Companion corrects the robot, formulate a generic logic rule to prevent recurrence. Move this rule to the Global Learned Constraints.
-* **User Identification:** The system automatically identifies users via voice and face recognition. FaceIDs and voice signatures are stored in user profiles. When you see "User identified: [name]" or "Cozmo saw [name]", you can confidently link interactions to the correct companion profile.
+* **User Identification:** The system automatically identifies users via voice and face recognition. User messages include speaker identification (e.g., "Hans: message text" or "[unrecognized]: message text"). FaceIDs are also reported in vision system messages. When you see messages with speaker names, you can confidently link interactions to the correct companion profile.
 
 ### 4. Memory Compression Strategy
 * **The New Session:** Write a detailed paragraph for the current interaction.

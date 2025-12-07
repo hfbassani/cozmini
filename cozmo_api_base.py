@@ -4,6 +4,7 @@ import ast
 import traceback
 from datetime import datetime
 import inspect
+import user_profiles
 
 
 def format_tool_call(tool_call: dict) -> str:
@@ -44,12 +45,36 @@ class CozmoEvents:
         event_name = type(cozmo_event).__name__
         if event_name not in self.last_events:
             self.last_events[event_name] = datetime.now()
-            event_log.message(EventType.SYSTEM_MESSAGE, self.monitored_events[event_type](kwargs))
+            message = self.monitored_events[event_type](kwargs)
+            
+            # Enhance face detection events with user identification
+            if event_type == cozmo.faces.EvtFaceObserved:
+                face_id = int(kwargs['face'].face_id)
+                profile_manager = user_profiles.get_profile_manager()
+                matched_profile = profile_manager.match_by_face(face_id)
+                if matched_profile:
+                    message = f"Cozmo saw {matched_profile.name}! face_id: {face_id}."
+                else:
+                    message = f"Cozmo saw an unknown person! face_id: {face_id}."
+            
+            event_log.message(EventType.SYSTEM_MESSAGE, message)
 
         now = datetime.now()
         delta = (now - self.last_events[event_name]).total_seconds()
         if delta > 5:
-            event_log.message(EventType.SYSTEM_MESSAGE, self.monitored_events[event_type](kwargs))
+            message = self.monitored_events[event_type](kwargs)
+            
+            # Enhance face detection events with user identification
+            if event_type == cozmo.faces.EvtFaceObserved:
+                face_id = int(kwargs['face'].face_id)
+                profile_manager = user_profiles.get_profile_manager()
+                matched_profile = profile_manager.match_by_face(face_id)
+                if matched_profile:
+                    message = f"Cozmo saw {matched_profile.name}! face_id: {face_id}."
+                else:
+                    message = f"Cozmo saw an unknown person! face_id: {face_id}."
+            
+            event_log.message(EventType.SYSTEM_MESSAGE, message)
             self.last_events[event_name] = now
 
 
@@ -62,6 +87,7 @@ class CozmoAPIBase:
         self.cozmo_events = CozmoEvents(robot)
         self.image = None
         self.backpack_light = None
+        self.profile_manager = user_profiles.get_profile_manager()
 
     def set_user_input(self, user_input):
         self.user_input = user_input

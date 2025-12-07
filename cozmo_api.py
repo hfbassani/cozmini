@@ -631,6 +631,139 @@ class CozmoAPI(CozmoAPIBase):
             return "an image was captured"
         else:
             return "Failed."
+    
+    def cozmo_enrolls_face(self, name: str) -> str:
+        """
+        Enrolls a new face for the specified person using Cozmo's face recognition.
+        The person should be looking at Cozmo during enrollment.
+        
+        Args:
+            name: The name of the person to enroll
+            
+        Returns:
+            Success message with face_id or error message
+        """
+        try:
+            # Check if user profile already exists
+            existing_profile = self.profile_manager.match_by_name(name)
+            if not existing_profile:
+                # Create new profile
+                profile = self.profile_manager.create_profile(name)
+                user_id = profile.user_id
+            else:
+                user_id = existing_profile.user_id
+                profile = existing_profile
+            
+            # Start EnrollFace behavior
+            self.robot.say_text(f"Hi {name}! Let me learn your face.").wait_for_completed()
+            behavior = self.robot.start_behavior(cozmo.behavior.BehaviorTypes.EnrollFace)
+            
+            # Wait for face enrollment to complete (with timeout)
+            time.sleep(10)  # Give time for enrollment
+            
+            # Stop the behavior
+            behavior.stop()
+            
+            # Get the most recently observed face
+            # Note: This is a simplified approach. In practice, you might want to
+            # use face events to capture the exact face_id that was enrolled
+            latest_face = None
+            for face in self.robot.world.visible_faces:
+                latest_face = face
+                break
+            
+            if latest_face:
+                face_id = latest_face.face_id
+                # Add face ID to profile
+                self.profile_manager.add_face_id(user_id, face_id)
+                return f"Successfully enrolled {name} with face_id: {face_id}"
+            else:
+                return f"Enrollment started but no face detected. Please try again."
+                
+        except Exception as e:
+            traceback.print_exc()
+            return f"Failed to enroll face: {str(e)}"
+    
+    def cozmo_identifies_user(self) -> str:
+        """
+        Attempts to identify the current user through recent face detection and voice.
+        
+        Returns:
+            The identified user's name or 'unknown'
+        """
+        # Check for recent face detection
+        identified_name = None
+        confidence = "low"
+        
+        # Look at visible faces
+        for face in self.robot.world.visible_faces:
+            profile = self.profile_manager.match_by_face(face.face_id)
+            if profile:
+                identified_name = profile.name
+                confidence = "high (face)"
+                break
+        
+        # If we have voice input module, check speaker identification
+        if hasattr(self, 'user_input') and self.user_input:
+            try:
+                if hasattr(self.user_input, 'current_speaker_embedding'):
+                    embedding = self.user_input.current_speaker_embedding
+                    if embedding is not None:
+                        voice_profile = self.profile_manager.match_by_voice(embedding)
+                        if voice_profile:
+                            if identified_name and identified_name != voice_profile.name:
+                                # Conflict between face and voice
+                                return f"Uncertain: face says {identified_name}, voice says {voice_profile.name}"
+                            identified_name = voice_profile.name
+                            confidence = "high (voice)" if not identified_name else "very high (face+voice)"
+            except Exception as e:
+                print(f"Error checking voice identification: {e}")
+        
+        if identified_name:
+            return f"{identified_name} (confidence: {confidence})"
+        else:
+            return "unknown"
+    
+    def cozmo_enrolls_new_user(self, name: str) -> str:
+        """
+        Enrolls a completely new user with both face and voice recognition.
+        Guides the user through the enrollment process.
+        
+        Args:
+            name: The name of the person to enroll
+            
+        Returns:
+            Success message or error
+        """
+        try:
+            # Check if user already exists
+            existing = self.profile_manager.match_by_name(name)
+            if existing:
+                return f"{name} is already enrolled. Use cozmo_enrolls_face to add another face view."
+            
+            # Create profile first
+            profile = self.profile_manager.create_profile(name)
+            
+            # Step 1: Enroll face
+            self.robot.say_text(f"Nice to meet you, {name}! First, let me learn your face.").wait_for_completed()
+            face_result = self.cozmo_enrolls_face(name)
+            
+            # Step 2: Enroll voice (if available)
+            if hasattr(self, 'user_input') and self.user_input:
+                if hasattr(self.user_input, 'enroll_voice'):
+                    self.robot.say_text("Now, let me learn your voice. Please speak after I beep.").wait_for_completed()
+                    time.sleep(1)
+                    voice_result = self.user_input.enroll_voice(profile.user_id, name)
+                    if voice_result:
+                        return f"Successfully enrolled {name} with both face and voice!"
+                    else:
+                        return f"Enrolled {name}'s face, but voice enrollment failed. Face result: {face_result}"
+            
+            return f"Enrolled {name}'s face: {face_result}. Voice enrollment not available."
+            
+        except Exception as e:
+            traceback.print_exc()
+            return f"Failed to enroll {name}: {str(e)}"
 
     def get_image_from_camera(self):
         self.robot.camera.color_image_enabled = True

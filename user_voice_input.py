@@ -6,6 +6,11 @@ import os
 from event_messages import event_log, EventType
 import threading
 import time
+import numpy as np
+import torch
+import torchaudio
+from typing import Optional, Tuple
+import user_profiles
 
 def init_voice_input():
     # Loading the access key and keyword path from environment variables
@@ -50,6 +55,20 @@ class VoiceInput:
         # --- Initializing Google Cloud Speech-to-Text client --- 
         self.speech_client = speech.SpeechClient()
 
+        # --- Initialize SpeechBrain speaker recognition model ---
+        try:
+            from speechbrain.pretrained import EncoderClassifier
+            self.speaker_model = EncoderClassifier.from_hparams(
+                source="speechbrain/spkrec-ecapa-voxceleb",
+                savedir="user_data/models/speaker_recognition"
+            )
+            print("✅ SpeechBrain speaker recognition model loaded successfully.")
+            self.speaker_recognition_enabled = True
+        except Exception as e:
+            print(f"⚠️  Speaker recognition disabled: {e}")
+            self.speaker_model = None
+            self.speaker_recognition_enabled = False
+
         # Initializing PyAudio
         self.pa = pyaudio.PyAudio()
         self.audio_stream = self.pa.open(
@@ -62,6 +81,8 @@ class VoiceInput:
 
         self.trigger_listen = False
         self.user_input = ''
+        self.current_speaker_embedding = None
+        self.profile_manager = user_profiles.get_profile_manager()
 
         # Initializing Google Cloud TTS API client
         self.tts_client = texttospeech.TextToSpeechClient()
@@ -96,6 +117,39 @@ class VoiceInput:
             return response.results[0].alternatives[0].transcript
         else:
             return ''
+    
+    def _extract_speaker_embedding(self, audio_data: bytes) -> Optional[np.ndarray]:
+        """Extract speaker embedding from raw audio data."""
+        if not self.speaker_recognition_enabled or self.speaker_model is None:
+            return None
+        
+        try:
+            # Convert bytes to numpy array
+            audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
+            
+            # Convert to tensor and ensure correct shape
+            audio_tensor = torch.from_numpy(audio_np).unsqueeze(0)
+            
+            # Extract embedding
+            with torch.no_grad():
+                embedding = self.speaker_model.encode_batch(audio_tensor)
+                embedding_np = embedding.squeeze().cpu().numpy()
+            
+            return embedding_np
+        except Exception as e:
+            print(f"Error extracting speaker embedding: {e}")
+            return None
+    
+    def _identify_speaker(self, audio_embedding: Optional[np.ndarray]) -> Optional[str]:
+        """Identify speaker from embedding."""
+        if audio_embedding is None:
+            return None
+        
+        # Match against known profiles
+        matched_profile = self.profile_manager.match_by_voice(audio_embedding)
+        if matched_profile:
+            return matched_profile.name
+        return None
 
     def wait_input_finish(self):
         while self.trigger_listen:
@@ -109,13 +163,57 @@ class VoiceInput:
         return self.user_input
    
 
-    def _listen(self):
-
+    def _listen(self) -> Tuple[str, Optional[str]]:
+        """Listen and return both transcription and identified speaker."""
         # Recording voice input and converting it to text
         audio_data = self._record_audio(self.audio_stream, self.rate, self.frame_length, VoiceInput.RECORD_TIME)
         user_input = self._transcribe_audio(self.speech_client, audio_data)
-
-        return user_input
+        
+        # Extract speaker embedding and identify
+        speaker_embedding = self._extract_speaker_embedding(audio_data)
+        self.current_speaker_embedding = speaker_embedding
+        speaker_name = self._identify_speaker(speaker_embedding)
+        
+        return user_input, speaker_name
+    
+    def enroll_voice(self, user_id: str, name: str, num_samples: int = 3) -> bool:
+        """Enroll a new user's voice by capturing multiple samples."""
+        if not self.speaker_recognition_enabled:
+            print("Speaker recognition is not enabled")
+            return False
+        
+        print(f"Enrolling voice for {name}. Please speak {num_samples} times when prompted.")
+        embeddings = []
+        
+        for i in range(num_samples):
+            print(f"Sample {i+1}/{num_samples}: Please speak now...")
+            audio_data = self._record_audio(self.audio_stream, self.rate, self.frame_length, 3)
+            embedding = self._extract_speaker_embedding(audio_data)
+            
+            if embedding is not None:
+                embeddings.append(embedding)
+            else:
+                print(f"Failed to extract embedding for sample {i+1}")
+        
+        if len(embeddings) < 2:
+            print("Not enough valid samples for enrollment")
+            return False
+        
+        # Average the embeddings
+        avg_embedding = np.mean(embeddings, axis=0)
+        
+        # Store in user profile
+        success = self.profile_manager.update_profile(
+            user_id,
+            voice_embedding=avg_embedding.tolist()
+        )
+        
+        if success:
+            print(f"✅ Voice enrollment successful for {name}")
+        else:
+            print(f"❌ Failed to save voice embedding for {name}")
+        
+        return success
 
     def start_loop(self):
         threading.Thread(target=self.wait_keyword_loop, daemon=True).start()
@@ -143,19 +241,24 @@ class VoiceInput:
             
             if self.detect_wake_word(pcm):
                 self.trigger_listen = True
-                self.user_input = self._listen()
-                if self.user_input:
-                    # Note: You might want to remove the hardcoded "Hey, Cozmo" here
-                    # since it was already detected as the wake word.
-                    self.user_input = "Hey, Cozmo. " + self.user_input
+                user_input, speaker_name = self._listen()
+                if user_input:
+                    # Add speaker identification to message
+                    if speaker_name:
+                        event_log.message(EventType.SYSTEM_MESSAGE, f"User identified: {speaker_name}")
+                        self.user_input = "Hey, Cozmo. " + user_input
+                    else:
+                        self.user_input = "Hey, Cozmo. " + user_input
                     event_log.message(EventType.USER_MESSAGE, self.user_input)
                 self.trigger_listen = False
 
             # Otherwise, if listen was triggered externally
             elif self.trigger_listen:
-                self.user_input = self._listen()
-                if self.user_input:
-                    event_log.message(EventType.USER_MESSAGE, self.user_input)
+                user_input, speaker_name = self._listen()
+                if user_input:
+                    if speaker_name:
+                        event_log.message(EventType.SYSTEM_MESSAGE, f"User identified: {speaker_name}")
+                    event_log.message(EventType.USER_MESSAGE, user_input)
                 self.trigger_listen = False
 
 

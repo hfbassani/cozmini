@@ -86,6 +86,26 @@ class UserInterface():
                     f'<span class="msg-content"><strong>You:</strong> {user_text}</span>'
                     f'</div>'
                 )
+            # User messages with speaker identification (e.g., "Hans: message" or "[unrecognized]: message")
+            elif ': ' in line and not any(line.startswith(prefix) for prefix in ['System message', 'API calls']):
+                # Check if this looks like a speaker-identified message
+                parts = line.split(': ', 1)
+                potential_speaker = parts[0]
+                # Check if it's a speaker name (doesn't start with known prefixes and is short enough)
+                if len(potential_speaker) < 30 and not '(' in potential_speaker and not '->' in potential_speaker:
+                    speaker_name = potential_speaker.strip('[]')  # Remove brackets if present
+                    message_text = parts[1].strip()
+                    # Use different styling for unrecognized users
+                    if potential_speaker.startswith('[') and potential_speaker.endswith(']'):
+                        speaker_display = f'{speaker_name} (unrecognized)'
+                    else:
+                        speaker_display = speaker_name
+                    formatted_html.append(
+                        f'<div class="msg msg-user" data-type="conversation">'
+                        f'<span class="msg-icon">👤</span>'
+                        f'<span class="msg-content"><strong>{speaker_display}:</strong> {message_text}</span>'
+                        f'</div>'
+                    )
             
             # System messages (listening, etc.)
             elif 'is listening' in line.lower() or 'stopped listening' in line.lower():

@@ -243,12 +243,9 @@ class VoiceInput:
                 self.trigger_listen = True
                 user_input, speaker_name = self._listen()
                 if user_input:
-                    # Add speaker identification to message
-                    if speaker_name:
-                        event_log.message(EventType.SYSTEM_MESSAGE, f"User identified: {speaker_name}")
-                        self.user_input = "Hey, Cozmo. " + user_input
-                    else:
-                        self.user_input = "Hey, Cozmo. " + user_input
+                    # Add speaker identification to the message itself
+                    speaker_prefix = f"{speaker_name}: " if speaker_name else "[unrecognized]: "
+                    self.user_input = speaker_prefix + "Hey, Cozmo. " + user_input
                     event_log.message(EventType.USER_MESSAGE, self.user_input)
                 self.trigger_listen = False
 
@@ -256,9 +253,9 @@ class VoiceInput:
             elif self.trigger_listen:
                 user_input, speaker_name = self._listen()
                 if user_input:
-                    if speaker_name:
-                        event_log.message(EventType.SYSTEM_MESSAGE, f"User identified: {speaker_name}")
-                    event_log.message(EventType.USER_MESSAGE, user_input)
+                    # Add speaker identification to the message itself
+                    speaker_prefix = f"{speaker_name}: " if speaker_name else "[unrecognized]: "
+                    event_log.message(EventType.USER_MESSAGE, speaker_prefix + user_input)
                 self.trigger_listen = False
 
 

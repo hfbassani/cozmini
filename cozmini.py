@@ -121,7 +121,22 @@ def process_events(event_log):
         if message_type == EventType.USER_MESSAGE:
             if message.lower() == 'bye':
                 stop = True
-            context += 'User says: ' + message + '\n'
+            # Check if message already has speaker identification (e.g., "Hans: " or "[unrecognized]: ")
+            # Speaker-identified messages have format: "Name: message" or "[unrecognized]: message"
+            has_speaker_id = False
+            if ': ' in message:
+                potential_speaker = message.split(': ', 1)[0]
+                # Valid speaker identification is either:
+                # 1. Enclosed in brackets like [unrecognized]
+                # 2. A short name (not starting with "User")
+                if (potential_speaker.startswith('[') and potential_speaker.endswith(']')) or \
+                   (len(potential_speaker) < 30 and not potential_speaker.startswith('User')):
+                    has_speaker_id = True
+            
+            if has_speaker_id:
+                context += message + '\n'
+            else:
+                context += 'User says: ' + message + '\n'
         elif message_type == EventType.API_CALL:
             context += f'{_API_PROMPT}: {message}\n'
         # elif message_type == EventType.API_RESULT:

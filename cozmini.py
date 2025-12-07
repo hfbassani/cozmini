@@ -221,6 +221,12 @@ def consolidate_memory():
                     new_memory += part.text
         
         new_memory = new_memory.strip()
+
+        if new_memory.startswith("Error"):
+            print(f"Error: {new_memory}")
+            with open(consolidation_error_file, 'w') as f:
+                f.write(f"Consolidation of session {timestamp} failed: {new_memory}")
+            return previous_memory  
         
         # Validate new memory (must be > 50% of old memory size to avoid corruption)
         min_size = len(previous_memory) * 0.5
@@ -274,6 +280,19 @@ def cozmo_program(robot: cozmo.robot.Robot, skip_memory=False):
     model_log = None
     model_log = open('user_data/model_log.txt', 'w')
 
+    if robot:
+        _cozmo_robot_api = cozmo_api.CozmoAPI(robot)
+    else:
+        _cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby()
+
+    # Play wake up animation
+    if _cozmo_robot_api:
+        try:
+            _cozmo_robot_api.cozmo_plays_animation("ConnectWakeUp", block=False)
+            print("Cozmo is waking up...")
+        except Exception as e:
+            print(f"Failed to play wake up animation: {e}")
+
     # Consolidate memory from previous session
     if skip_memory:
         print("Skipping memory consolidation (--no-memory flag set)")
@@ -315,11 +334,6 @@ def cozmo_program(robot: cozmo.robot.Robot, skip_memory=False):
             )
 
         
-        if robot:
-            _cozmo_robot_api = cozmo_api.CozmoAPI(robot)
-        else:
-            _cozmo_robot_api = cozmo_api_stubby.CozmoAPIStubby()
-
         _user_interface = user_ui.UserInterface(_cozmo_robot_api.get_image_from_camera)
         _user_input = user_voice_input.VoiceInput()
         if not _user_input:

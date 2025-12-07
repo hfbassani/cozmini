@@ -59,7 +59,15 @@ $(document).ready(function () {
     $inputBox.focus();
 
     // Tab switching functionality
-    function switchTab(tabName) {
+    function switchTab(tabName, handleScroll = true) {
+        // Check if we are at the bottom before switching
+        // This ensures that if we switch from a short list (Conversation) to a long list (Debug),
+        // we jump to the bottom if we were already at the bottom.
+        let isAtBottom = false;
+        if (handleScroll) {
+            isAtBottom = $history[0].scrollHeight - $history[0].scrollTop - $history[0].clientHeight <= 50;
+        }
+
         activeTab = tabName;
         localStorage.setItem('cozmo-active-tab', tabName);
 
@@ -77,6 +85,11 @@ $(document).ready(function () {
             // Show everything in debug mode
             $('.msg').show();
             $('.api-call, .api-call-error').show();
+        }
+
+        // Restore scroll position if we were at the bottom
+        if (handleScroll && isAtBottom) {
+            $history.scrollTop($history[0].scrollHeight);
         }
     }
 
@@ -103,7 +116,9 @@ $(document).ready(function () {
                     // Server is back online, restore connected status
                     $statusIndicator.removeClass('disconnected');
                     $statusIndicator.find('.dot').removeClass('disconnected');
-                    $('#status-text').text('Connected');
+                    $('#status-text').text('Cozmo is online');
+                    // Show camera image when online
+                    $cozmoImage.show();
                 }
 
                 // Parse history to determine listening state
@@ -134,15 +149,17 @@ $(document).ready(function () {
                 // Note: Simple check, can be optimized
                 if ($history.html() !== data) {
                     // Check if we were at the bottom before update
-                    const isAtBottom = $history.scrollTop() + $history.innerHeight() >= $history[0].scrollHeight - 10;
+                    // Use clientHeight for accuracy and increase tolerance to 50px
+                    const isAtBottom = $history[0].scrollHeight - $history[0].scrollTop - $history[0].clientHeight <= 50;
 
                     $history.html(data);
 
-                    // Reapply tab filter
-                    switchTab(activeTab);
+                    // Reapply tab filter - disable internal scroll logic to prevent conflicts
+                    switchTab(activeTab, false);
 
                     // Auto-scroll only if we were already at the bottom
                     if (isAtBottom) {
+                        // Synchronous scroll immediately after content update
                         $history.scrollTop($history[0].scrollHeight);
                     }
                 }
@@ -150,6 +167,13 @@ $(document).ready(function () {
             error: function () {
                 // Connection lost
                 const $statusIndicator = $('.status-indicator');
+                const $listeningIndicator = $('#listening-indicator');
+
+                // Hide listening indicator when offline
+                $listeningIndicator.addClass('hidden');
+
+                // Hide camera image when offline to prevent broken image icon
+                $cozmoImage.hide();
 
                 // Change from disconnecting to disconnected, or from connected to disconnected
                 if ($statusIndicator.hasClass('disconnecting')) {
@@ -157,18 +181,18 @@ $(document).ready(function () {
                     $statusIndicator.find('.dot').removeClass('disconnecting');
                     $statusIndicator.addClass('disconnected');
                     $statusIndicator.find('.dot').addClass('disconnected');
-                    $('#status-text').text('Disconnected');
+                    $('#status-text').text('Cozmo is offline');
                 } else if (!$statusIndicator.hasClass('disconnected')) {
                     $statusIndicator.addClass('disconnected');
                     $statusIndicator.find('.dot').addClass('disconnected');
-                    $('#status-text').text('Disconnected');
+                    $('#status-text').text('Cozmo is offline');
                 }
             }
         });
 
         // Update image with cache busting
         $cozmoImage.attr("src", "cozmoImage");
-    }, 250);
+    }, 25);
 
     // Handle input changes (partial input)
     $inputBox.on('input', function () {
@@ -216,7 +240,7 @@ $(document).ready(function () {
                     const $statusIndicator = $('.status-indicator');
                     $statusIndicator.addClass('disconnecting');
                     $statusIndicator.find('.dot').addClass('disconnecting');
-                    $('#status-text').text('Disconnecting');
+                    $('#status-text').text('Cozmo is shutting down');
                 }
             });
         }

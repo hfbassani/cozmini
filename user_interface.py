@@ -180,10 +180,15 @@ class UserInterface():
             return '⚡'
 
     def capture_user_input(self):
+        if self.new_user_input_provided:
+            self.new_user_input_provided = False
+            return self.user_says
+
         self.new_user_input_provided = False
         self.history += "Cozmo is listening..."
         while not self.new_user_input_provided:
             sleep(0.05)
+        self.new_user_input_provided = False
         return self.user_says
 
     def wait_input_finish(self):

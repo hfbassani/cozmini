@@ -146,13 +146,13 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         else:
             return "Cozmo failed to move head."
 
-    def cozmo_plays_animation(self, animation_name: str) -> str:
+    def cozmo_plays_animation(self, animation_name: str, block: bool = True) -> str:
         """
-        Makes Cozmo play a specific animation.
+        Makes Cozmo play a specific animation or animation trigger name.
 
         Args:
-            animation_name: The name of the animation to play. Supported animation names:
-                Happy/Excited: anim_pyramid_reacttocube_happy_high_02, anim_energy_successgetout_02, anim_explorer_driving01_turbo_01, anim_memorymatch_solo_successgame_player_01, anim_fistbump_success_02, anim_majorwin, anim_keepaway_wingame_03, anim_meetcozmo_celebration, anim_pounce_success_04, anim_speedtap_wingame_intensity03_01
+            animation_name: The name of the animation or trigger name to play. Supported animation names:
+                Happy/Excited: anim_greeting_happy_03, anim_pyramid_reacttocube_happy_high_02, anim_energy_successgetout_02, anim_explorer_driving01_turbo_01, anim_memorymatch_solo_successgame_player_01, anim_fistbump_success_02, anim_majorwin, anim_keepaway_wingame_03, anim_meetcozmo_celebration, anim_pounce_success_04, anim_speedtap_wingame_intensity03_01
                 
                 Sad/Frustrated: anim_pyramid_reacttocube_frustrated_low_01, anim_memorymatch_solo_failhand_player_01, anim_reacttocliff_turtlerollfail_03, anim_driving_upset_loop_01, anim_speedtap_losehand_02, anim_memorymatch_failgame_cozmo_03, anim_reacttoblock_frustrated_int2_01, anim_rollblock_fail_01, anim_reacttocliff_stuckrightside_01, anim_majorfail, anim_speedtap_losegame_intensity02_02
                 
@@ -169,7 +169,8 @@ class CozmoAPIStubby(cozmo_api.CozmoAPI):
         Returns:
             A string indicating the result, e.g., "Cozmo played animation: [animation_name]"
         """
-        time.sleep(3)  # Simulate some delay for playing animation
+        if block:
+            time.sleep(3)  # Simulate some delay for playing animation
         if self.succeed:
             return f"Cozmo played animation: {animation_name}"
         else:
